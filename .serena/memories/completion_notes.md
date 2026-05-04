@@ -1,1 +1,0 @@
-After changes, run `python -m compileall app` and `python -m pytest -q`. Current verified result after the TCG Trove build: compileall passes; pytest result is 75 passed, 1 skipped. A local uvicorn server was started successfully on http://127.0.0.1:8000 with /health returning 200.

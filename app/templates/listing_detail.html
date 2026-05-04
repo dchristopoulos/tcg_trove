@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}{{ listing.title }} - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 1rem; align-items: start; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .detail-hero { display: grid; grid-template-columns: minmax(250px, 360px) minmax(0, 1fr); gap: 1rem; align-items: center; }
+  .hero-img { width: 100%; max-height: 520px; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 14px; background: #f8fafc; box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16); }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0; }
+  .id-chip { display: inline-flex; align-items: center; min-height: 26px; border-radius: 999px; padding: 0.2rem 0.55rem; background: var(--bg); border: 1px solid var(--line); color: var(--text-muted); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem; text-align: center; background: var(--bg); }
+  .stat strong { display: block; font-size: 1.05rem; }
+  .stat span { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; }
+  .sidebar { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+  .price { font-size: 2rem; font-weight: 900; color: var(--brand); margin: 0; }
+  .related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  .related-card { display: grid; gap: 0.5rem; border: 1px solid var(--line); border-radius: 12px; padding: 0.7rem; color: inherit; text-decoration: none; background: var(--bg); transition: transform 160ms ease, box-shadow 160ms ease; }
+  .related-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+  .related-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 9px; background: #f8fafc; border: 1px solid var(--line); }
+  .related-card strong { line-height: 1.2; }
+  .offer-table { width: 100%; border-collapse: collapse; }
+  .offer-table th, .offer-table td { text-align: left; border-bottom: 1px solid var(--line); padding: 0.65rem; vertical-align: middle; }
+  .offer-table th { color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; }
+  .offer-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; } .sidebar { position: static; } .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .detail-hero { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { .related-grid { grid-template-columns: 1fr; } }
+</style>
+<div class="detail-grid">
+  <main style="display: grid; gap: 1rem;">
+    <section class="panel">
+      <a href="/listings" class="btn btn-outline btn-sm">Back to Cards</a>
+      <div class="detail-hero">
+        <img class="hero-img" src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="eager" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+        <div>
+          <h1>{{ listing.title }}</h1>
+          <div class="chip-row">
+            {% if card_number %}<span class="id-chip">Card No. {{ card_number }}</span>{% endif %}
+            <span class="id-chip">Listing #{{ listing.id }}</span>
+            <span class="id-chip">{{ listing.location }}</span>
+          </div>
+          <p class="price">${{ "{:,}".format(listing.price) }}</p>
+          <p class="subtle">{{ listing.property_type|replace('_',' ')|title }} · {{ listing.furnished|condition_label }} · {{ listing.size }} in stock</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="stat-grid">
+        <div class="stat"><strong>{{ listing.location }}</strong><span>Game</span></div>
+        <div class="stat"><strong>{{ listing.property_type|replace('_',' ')|title }}</strong><span>Rarity</span></div>
+        <div class="stat"><strong>{{ listing.furnished|condition_label }}</strong><span>Condition</span></div>
+        <div class="stat"><strong>{{ listing.size }}</strong><span>Stock</span></div>
+        <div class="stat"><strong>{{ listing.bedrooms }}</strong><span>Year</span></div>
+        <div class="stat"><strong>{{ listing.bathrooms }}/5</strong><span>Rarity Score</span></div>
+        <div class="stat"><strong>{{ card_number or 'N/A' }}</strong><span>Card No.</span></div>
+        <div class="stat"><strong>#{{ listing.id }}</strong><span>Listing ID</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top: 0;">Card Details</h2>
+      <p>{{ listing.description }}</p>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top: 0;">Seller Offer</h2>
+      <p class="subtle">This marketplace version treats each listing as one seller offer for the selected card.</p>
+      <table class="offer-table">
+        <thead>
+          <tr><th>Seller</th><th>Condition</th><th>Stock</th><th>Price</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ seller.username if seller else 'Seller' }}</td>
+            <td>{{ listing.furnished|condition_label }}</td>
+            <td>{{ listing.size }}</td>
+            <td>${{ "{:,}".format(listing.price) }}</td>
+            <td>
+              <div class="offer-actions">
+                {% if can_save_listings %}
+                <form method="post" action="/cart/add/{{ listing.id }}" data-cart-add="true">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button class="btn btn-primary btn-sm" type="submit" data-added-label="Added" data-default-label="Add">Add</button>
+                </form>
+                <a class="btn btn-outline btn-sm" href="#contact-seller">Contact</a>
+                {% else %}
+                <a class="btn btn-primary btn-sm" href="/login">Login</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top: 0;">Price History</h2>
+      <p class="subtle">Initial and updated listing prices are tracked in the database.</p>
+      <div id="price-trend-visual" data-listing-id="{{ listing.id }}"></div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top: 0;">More From {{ listing.location }}</h2>
+      <div class="related-grid">
+        {% for item in same_game_listings %}
+        <a class="related-card" href="/listings/{{ item.id }}">
+          <img src="{{ item.image_url or '/static/listing-placeholder.svg' }}" alt="{{ item.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+          <strong>{{ item.title }}</strong>
+          {% set related_no = same_game_card_numbers.get(item.id) %}
+          {% if related_no %}<span class="id-chip">Card No. {{ related_no }}</span>{% endif %}
+          <span class="subtle">{{ item.property_type|replace('_',' ')|title }} · {{ item.furnished|condition_label }}</span>
+          <span>${{ "{:,}".format(item.price) }}</span>
+        </a>
+        {% else %}
+        <p class="subtle" style="margin: 0;">No other listings from this game are currently available.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+
+  <aside class="sidebar">
+    <section class="panel">
+      <h2 style="margin-top: 0;">Buy & Save</h2>
+      {% if message %}
+      <p class="alert alert-info">{{ 'Message sent to the seller.' if message == 'Inquiry sent to the property seller.' else message }}</p>
+      {% endif %}
+      {% if error %}<p class="error">{{ error }}</p>{% endif %}
+      {% if can_save_listings %}
+      <form method="post" action="/cart/add/{{ listing.id }}" data-cart-add="true" style="display: grid; gap: 0.5rem; margin-bottom: 0.5rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn btn-primary" type="submit" style="width: 100%;" data-added-label="Added to Cart" data-default-label="Add to Cart">Add to Cart</button>
+      </form>
+      <form method="post" action="/listings/{{ listing.id }}/{{ 'unsave' if is_saved else 'save' }}" data-save-toggle="true" data-listing-id="{{ listing.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input type="hidden" name="next_path" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
+        <button type="submit" class="btn {{ 'btn-primary' if is_saved else 'btn-outline' }}" style="width: 100%;">{{ 'Saved' if is_saved else 'Add to Wishlist' }}</button>
+      </form>
+      {% else %}
+      <a href="/login" class="btn btn-primary" style="width: 100%;">Login to Buy</a>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top: 0;">Seller</h2>
+      <strong>{{ seller.username if seller else 'Seller' }}</strong>
+      {% if seller %}<p class="subtle">{{ seller.email }}</p>{% endif %}
+      {% if can_save_listings %}
+      <form id="contact-seller" method="post" action="/listings/{{ listing.id }}/contact-seller" style="display: grid; gap: 0.5rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <textarea name="message" rows="4" required placeholder="Hi, is this card still available?"></textarea>
+        <button class="btn btn-outline" type="submit">Communicate with Seller</button>
+      </form>
+      {% else %}
+      <a href="/login" class="btn btn-outline">Login to Contact Seller</a>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}

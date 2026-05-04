@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Saved Cards - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .saved-page { display: grid; gap: 1rem; }
+  .saved-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, var(--surface)), var(--surface) 74%);
+    box-shadow: var(--shadow-sm);
+  }
+  .saved-hero h1 { margin: 0; }
+  .saved-hero p { margin: 0.25rem 0 0; }
+  .saved-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 1rem; align-items: stretch; }
+  .saved-card { overflow: hidden; padding: 0; display: flex; flex-direction: column; min-height: 100%; }
+  .saved-media { padding: 0.85rem 0.85rem 0; background: linear-gradient(180deg, rgba(239,246,255,0.92), rgba(255,255,255,0)); }
+  .saved-media img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 10px; background: #f8fafc; box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12); }
+  .saved-body { padding: 0.9rem; display: flex; flex: 1; flex-direction: column; gap: 0.65rem; }
+  .saved-actions { margin-top: auto; display: grid; grid-template-columns: 1fr auto auto; gap: 0.5rem; align-items: stretch; }
+  .saved-actions form { display: flex; margin: 0; }
+  .saved-actions .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .saved-actions form .btn { width: 100%; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .id-chip { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 0.2rem 0.5rem; background: var(--bg); border: 1px solid var(--line); color: var(--text-muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+  .price-pill { font-size: 1.25rem; font-weight: 900; color: var(--brand); }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
+  .meta-box { border: 1px solid var(--line); border-radius: 10px; padding: 0.4rem; text-align: center; background: var(--bg); }
+  .meta-box strong { display: block; }
+  .meta-box span { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+  @media (max-width: 720px) {
+    .saved-hero { align-items: stretch; flex-direction: column; }
+  }
+</style>
+
+<div class="saved-page">
+  <section class="saved-hero">
+    <div>
+      <h1>Saved Cards</h1>
+      <p class="subtle">Cards you liked are kept here for quick comparison and checkout.</p>
+    </div>
+    <a href="/listings" class="btn btn-outline">Browse More Cards</a>
+  </section>
+
+  {% if saved_listings %}
+  <section class="saved-grid" aria-label="Saved card listings">
+    {% for listing in saved_listings %}
+    {% set card_no = card_numbers.get(listing.id) %}
+    <article class="panel saved-card card-listing">
+      <div class="saved-media card-media">
+        <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+      </div>
+      <div class="saved-body card-body">
+        <div class="chip-row">
+          {% if card_no %}<span class="id-chip">Card No. {{ card_no }}</span>{% endif %}
+          <span class="id-chip">Listing #{{ listing.id }}</span>
+        </div>
+        <div class="price-pill">${{ "{:,}".format(listing.price) }}</div>
+        <h2 style="font-size: 1.08rem; margin: 0;"><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h2>
+        <p class="subtle" style="margin: 0;">{{ listing.location }} · {{ listing.property_type|replace('_',' ')|title }} · {{ listing.furnished|condition_label }}</p>
+        <div class="meta-grid">
+          <div class="meta-box"><strong>{{ listing.size }}</strong><span>Stock</span></div>
+          <div class="meta-box"><strong>{{ listing.bedrooms }}</strong><span>Year</span></div>
+          <div class="meta-box"><strong>{{ listing.bathrooms }}/5</strong><span>Rarity</span></div>
+        </div>
+        <div class="saved-actions card-actions">
+          <a href="/listings/{{ listing.id }}" class="btn btn-primary">Details</a>
+          <form method="post" action="/cart/add/{{ listing.id }}" data-cart-add="true">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button type="submit" class="btn btn-outline" data-added-label="Added" data-default-label="Cart">Cart</button>
+          </form>
+          <form method="post" action="/listings/{{ listing.id }}/unsave" data-save-toggle="true" data-listing-id="{{ listing.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="next_path" value="/saved" />
+            <button type="submit" class="btn btn-outline">Remove</button>
+          </form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="panel empty-state">
+    <h2>No saved cards yet</h2>
+    <p class="subtle">Use the Save button on card listings to build a wishlist.</p>
+    <a href="/listings" class="btn btn-primary">Browse Cards</a>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

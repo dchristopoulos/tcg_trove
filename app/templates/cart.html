@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Cart & Wallet - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .cart-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; align-items: start; }
+  .cart-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .cart-list { display: grid; gap: 0.75rem; }
+  .cart-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 0.85rem; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 0.65rem; }
+  .cart-row img { width: 88px; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 8px; background: #f8fafc; border: 1px solid var(--line); }
+  .cart-row h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+  .cart-row p { margin: 0; color: var(--text-muted); font-size: 0.88rem; }
+  .wallet-number { font-size: 1.7rem; font-weight: 900; margin: 0.2rem 0 0.8rem; }
+  .history-table { width: 100%; border-collapse: collapse; }
+  .history-table th, .history-table td { text-align: left; border-bottom: 1px solid var(--line); padding: 0.55rem; font-size: 0.88rem; }
+  @media (max-width: 860px) { .cart-grid { grid-template-columns: 1fr; } .cart-row { grid-template-columns: 72px 1fr; } .cart-row form { grid-column: 1 / -1; } }
+</style>
+
+{% if message %}<p class="alert alert-info">{{ message }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="cart-grid">
+  <main class="cart-panel">
+    <div class="section-head">
+      <div>
+        <h1 style="margin: 0;">Cart</h1>
+        <p class="subtle">Wallet checkout spends virtual balance and records order history.</p>
+      </div>
+      <a href="/listings" class="btn btn-outline">Browse Cards</a>
+    </div>
+
+    <div class="cart-list">
+      {% for listing in listings %}
+      <article class="cart-row">
+        <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+        <div>
+          <h3>{{ listing.title }}</h3>
+          <p>{{ listing.location }} · {{ listing.property_type|replace('_', ' ')|title }} · {{ listing.furnished|condition_label }}</p>
+          <strong>${{ "{:,}".format(listing.price) }}</strong>
+        </div>
+        <form method="post" action="/cart/remove/{{ listing.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="btn btn-outline btn-sm" type="submit">Remove</button>
+        </form>
+      </article>
+      {% else %}
+      <div class="empty-state">
+        <h2>Your cart is empty</h2>
+        <p class="subtle">Add cards from the marketplace to simulate a purchase.</p>
+        <a href="/listings" class="btn btn-primary">Find Cards</a>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+
+  <aside class="cart-panel">
+    <h2 style="margin-top: 0;">Wallet</h2>
+    <p class="subtle">Current balance</p>
+    <p class="wallet-number">${{ "{:,}".format(user.balance or 0) }}</p>
+    <form method="post" action="/wallet/add" style="display: grid; gap: 0.55rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input type="hidden" name="next_path" value="/cart" />
+      <label for="wallet-amount">Add virtual funds</label>
+      <input id="wallet-amount" type="number" name="amount" min="1" max="1000000" placeholder="10000" required />
+      <button class="btn btn-outline" type="submit">Add Balance</button>
+    </form>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin: 1rem 0;" />
+    <p class="subtle">Cart total</p>
+    <p class="wallet-number">${{ "{:,}".format(total) }}</p>
+    <form method="post" action="/checkout">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <button class="btn btn-primary" style="width: 100%;" type="submit" {% if not listings %}disabled{% endif %}>Checkout</button>
+    </form>
+  </aside>
+</div>
+
+<section class="cart-panel" style="margin-top: 1rem;">
+  <h2 style="margin-top: 0;">Order History</h2>
+  <table class="history-table">
+    <thead><tr><th>Ref</th><th>Card</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td>{{ order.transaction_ref }}</td>
+        <td>{{ order.listing.title if order.listing else 'Listing #' ~ order.listing_id }}</td>
+        <td>{{ order.status|title }}</td>
+        <td>${{ "{:,}".format(order.total_price) }}</td>
+        <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="subtle">No purchases yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

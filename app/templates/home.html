@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}TCG Trove - Trading Card Marketplace{% endblock %}
+{% block content %}
+<style>
+  .home-hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr); gap: clamp(1rem, 3vw, 2rem); align-items: center; padding: clamp(1.4rem, 4vw, 2.6rem); border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(130deg, color-mix(in srgb, var(--brand) 18%, var(--surface)) 0%, var(--surface) 58%, color-mix(in srgb, var(--accent) 12%, var(--surface)) 100%); box-shadow: var(--shadow-sm); }
+  .hero-copy { display: grid; gap: 1rem; }
+  .hero-copy h1 { margin: 0; font-size: clamp(2.2rem, 6vw, 4.4rem); line-height: 0.96; max-width: 11ch; }
+  .hero-copy p { margin: 0; max-width: 64ch; color: var(--text-muted); font-size: 1.05rem; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+  .hero-search { display: grid; grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr) minmax(110px, 0.7fr) auto; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface) 88%, transparent); }
+  .hero-search input, .hero-search select { min-height: 44px; border-radius: 10px; border: 1px solid var(--line); padding: 0.65rem; background: var(--bg); color: var(--text); }
+  .card-showcase { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem; align-items: end; }
+  .showcase-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 0.75rem; box-shadow: 0 18px 34px rgba(15, 23, 42, 0.14); transform: rotate(-2deg); }
+  .showcase-card:nth-child(2) { transform: translateY(-18px) rotate(2deg); }
+  .showcase-card:nth-child(3) { transform: rotate(1deg); }
+  .showcase-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 10px; background: #f8fafc; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin-top: 1rem; }
+  .stat-card, .role-card, .game-chip-card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 1rem; box-shadow: var(--shadow-sm); }
+  .stat-card strong { display: block; font-size: 1.75rem; color: var(--brand); }
+  .content-grid { display: grid; grid-template-columns: 1.35fr 0.65fr; gap: 1rem; margin-top: 1rem; align-items: start; }
+  .featured-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1rem; }
+  .tcg-card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-sm); }
+  .tcg-card-media { padding: 0.8rem 0.8rem 0; background: linear-gradient(180deg, rgba(239,246,255,0.85), rgba(255,255,255,0)); }
+  .tcg-card img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 10px; background: #f8fafc; }
+  .tcg-card-body { padding: 0.9rem; display: grid; gap: 0.45rem; }
+  .price-line { font-size: 1.15rem; font-weight: 900; color: var(--brand); }
+  .game-list { display: grid; gap: 0.6rem; }
+  .game-chip-card { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+  .role-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin-top: 1rem; }
+  .role-card h3 { margin-top: 0; }
+  @media (max-width: 940px) { .home-hero, .content-grid { grid-template-columns: 1fr; } .stat-grid, .role-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 720px) { .hero-search, .stat-grid, .role-grid, .card-showcase { grid-template-columns: 1fr; } .showcase-card, .showcase-card:nth-child(2), .showcase-card:nth-child(3) { transform: none; } }
+</style>
+
+<section class="home-hero" aria-labelledby="hero-title">
+  <div class="hero-copy">
+    <span class="meta-pill" style="width: fit-content;">University Demo Marketplace</span>
+    <h1 id="hero-title">TCG Trove</h1>
+    <p>Browse real trading-card examples, save cards to a wishlist, add listings to cart, and complete a simulated wallet checkout. Seller, supervisor, and admin flows are built for a clear project demonstration.</p>
+    <form class="hero-search" action="/listings" method="get" aria-label="Search marketplace">
+      <input type="text" name="q" placeholder="Charizard, Blue-Eyes, Luffy..." aria-label="Card search" />
+      <select name="location" aria-label="Game or franchise">
+        <option value="">Any game</option>
+        <option value="Pokemon">Pokemon</option>
+        <option value="Yu-Gi-Oh">Yu-Gi-Oh!</option>
+        <option value="Magic">Magic</option>
+        <option value="One Piece">One Piece</option>
+        <option value="Lorcana">Lorcana</option>
+      </select>
+      <input type="number" name="max_price" min="0" placeholder="Max $" aria-label="Maximum price" />
+      <button class="btn btn-primary" type="submit">Browse Cards</button>
+    </form>
+    <div class="hero-actions">
+      <a href="/listings" class="btn btn-primary">Browse Cards</a>
+      <a href="/users/register" class="btn btn-outline">Create Account</a>
+      <a href="/permissions" class="btn btn-outline">View Permissions</a>
+    </div>
+  </div>
+  <div class="card-showcase" aria-label="Featured card artwork">
+    {% for listing in listings[:3] %}
+    <a class="showcase-card" href="/listings/{{ listing.id }}">
+      <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="stat-grid" aria-label="Marketplace statistics">
+  <article class="stat-card"><span class="subtle">Cards</span><strong>{{ stats.cards }}</strong></article>
+  <article class="stat-card"><span class="subtle">Listings</span><strong>{{ stats.listings }}</strong></article>
+  <article class="stat-card"><span class="subtle">Sellers</span><strong>{{ stats.sellers }}</strong></article>
+  <article class="stat-card"><span class="subtle">Games</span><strong>{{ stats.games }}</strong></article>
+</section>
+
+<section class="role-grid" aria-label="Role overview">
+  <article class="role-card"><h3>Buyer</h3><p class="subtle">Search, wishlist, cart, wallet checkout, and order history.</p></article>
+  <article class="role-card"><h3>Seller</h3><p class="subtle">Create card listings, manage inventory, and receive simulated proceeds.</p></article>
+  <article class="role-card"><h3>Supervisor</h3><p class="subtle">Review monthly sales totals, top cards, sellers, and payment logs.</p></article>
+  <article class="role-card"><h3>Admin</h3><p class="subtle">View users, listings, payments, reports, and project activity.</p></article>
+</section>
+
+<div class="content-grid">
+  <section class="surface">
+    <div class="section-head">
+      <div><h2 style="margin: 0;">Featured Cards</h2><p class="subtle">Curated demo listings with fallback images for reliable presentations.</p></div>
+      <a href="/listings" class="btn btn-outline">View All</a>
+    </div>
+    <div class="featured-grid">
+      {% for listing in listings %}
+      <article class="tcg-card">
+        <div class="tcg-card-media">
+          <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+        </div>
+        <div class="tcg-card-body">
+          <span class="price-line">${{ "{:,}".format(listing.price) }}</span>
+          <h3 style="margin: 0; font-size: 1rem;"><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h3>
+          <p class="subtle" style="margin: 0;">{{ listing.location }} · {{ listing.property_type|replace('_',' ')|title }} · {{ listing.furnished|condition_label }}</p>
+        </div>
+      </article>
+      {% else %}
+      <div class="empty-state"><h2>No listings yet</h2><p class="subtle">Run the seed command to load demo cards.</p></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <aside class="surface">
+    <h2 style="margin-top: 0;">Popular Games</h2>
+    <div class="game-list">
+      {% for game, count in popular_games %}
+      <a class="game-chip-card" href="/listings?location={{ game|urlencode }}">
+        <strong>{{ game }}</strong>
+        <span class="meta-pill">{{ count }} listings</span>
+      </a>
+      {% else %}
+      <p class="subtle">No game data available yet.</p>
+      {% endfor %}
+    </div>
+    <hr style="border: 0; border-top: 1px solid var(--line); margin: 1rem 0;" />
+    <p class="subtle" style="margin-bottom: 0;">Wallet payments are simulated for the university demo. The app stores orders and payment logs but never processes real money.</p>
+  </aside>
+</div>
+{% endblock %}

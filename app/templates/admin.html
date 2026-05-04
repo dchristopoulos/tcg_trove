@@ -1,0 +1,631 @@
+{% extends "base.html" %}
+{% block title %}Admin - TCG Trove{% endblock %}
+
+{% block content %}
+<style>
+  .admin-page {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .admin-hero {
+    border: 1px solid #1e293b;
+    border-radius: 1.2rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1f2937 100%);
+    color: #f8fafc;
+    padding: 1.85rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .admin-hero h1 {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    letter-spacing: -0.02em;
+  }
+
+  .admin-hero .subtle {
+    color: #cbd5e1;
+  }
+
+  .status-stack {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.55rem;
+    max-width: 660px;
+  }
+
+  .admin-actions {
+    margin-top: 1.1rem;
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .admin-actions .btn {
+    border-color: rgba(255, 255, 255, 0.34);
+  }
+
+  .status-banner {
+    border-radius: 0.7rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+  }
+
+  .status-success {
+    background: rgba(22, 163, 74, 0.16);
+    border-color: rgba(134, 239, 172, 0.45);
+    color: #dcfce7;
+  }
+
+  .status-error {
+    background: rgba(153, 27, 27, 0.25);
+    border-color: rgba(248, 113, 113, 0.45);
+    color: #fecaca;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.9rem;
+    padding: 0.95rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .kpi-card span {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .kpi-card strong {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.45rem;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.15rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .panel-head h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .panel-intro {
+    margin: 0 0 0.9rem;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+  }
+
+  .split-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .alert-list,
+  .overview-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .alert-list li,
+  .overview-list li {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 0.75rem;
+    padding: 0.72rem;
+  }
+
+  .overview-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .alert-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .badge-alert {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.69rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-high {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .badge-medium {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  .badge-low {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    padding: 0.75rem;
+    vertical-align: top;
+  }
+
+  .admin-table th {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .admin-table tbody tr:nth-child(odd) {
+    background: rgba(148, 163, 184, 0.06);
+  }
+
+  .role-form {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+
+  .role-select {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 0.45rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  .listing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 0.9rem;
+  }
+
+  .listing-card {
+    border: 1px solid var(--line);
+    border-radius: 0.9rem;
+    background: var(--bg);
+    padding: 0.95rem;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .listing-card h3 {
+    margin: 0;
+    font-size: 1.03rem;
+  }
+
+  .listing-admin-head {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .listing-admin-head img {
+    width: 72px;
+    aspect-ratio: 3 / 4;
+    object-fit: contain;
+    border-radius: 0.65rem;
+    background: #f8fafc;
+    border: 1px solid var(--line);
+  }
+
+  .listing-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+
+  .listing-form label {
+    display: grid;
+    gap: 0.22rem;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .listing-form input,
+  .listing-form select,
+  .listing-form textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 0.45rem;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.86rem;
+  }
+
+  .listing-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .system-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .ux-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .ux-item {
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--bg);
+    padding: 0.72rem;
+  }
+
+  .ux-item span {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  .ux-item strong {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.2rem;
+  }
+
+  .btn[disabled],
+  .ghost-btn[disabled],
+  .btn.is-loading,
+  .ghost-btn.is-loading {
+    opacity: 0.72;
+    cursor: wait;
+  }
+
+  @media (max-width: 960px) {
+    .split-2,
+    .listing-form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="admin-page">
+  <section class="admin-hero" data-reveal>
+    <h1>Admin Control Center</h1>
+    <p class="subtle">Signed in as <strong>{{ user.username }}</strong> ({{ user.role }}) with privileged access.</p>
+    <div class="admin-actions" aria-label="Admin tools">
+      <a href="#user-management" class="btn btn-primary">Manage Users</a>
+      <a href="/supervisor" class="btn btn-outline">Supervisor View</a>
+      <a href="/reports" class="btn btn-outline">Reports</a>
+      <a href="/permissions" class="btn btn-outline">Permission Guide</a>
+    </div>
+    <div class="status-stack" role="status" aria-live="polite">
+      {% if message %}
+      <div class="status-banner status-success">{{ message }}</div>
+      {% endif %}
+      {% if error %}
+      <div class="status-banner status-error">{{ error }}</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="kpi-grid" data-reveal data-stagger>
+    <article class="kpi-card"><span>Users</span><strong>{{ users|length }}</strong></article>
+    <article class="kpi-card"><span>Listings</span><strong>{{ listings|length }}</strong></article>
+    <article class="kpi-card"><span>Inquiries</span><strong>{{ inquiries|length }}</strong></article>
+    <article class="kpi-card"><span>Favorites</span><strong>{{ favorites|length }}</strong></article>
+    <article class="kpi-card"><span>Search Logs</span><strong>{{ search_logs_count }}</strong></article>
+  </section>
+
+  <section class="panel" id="user-management" data-reveal>
+    <div class="panel-head">
+      <h2>Operational Health</h2>
+      <span class="meta-pill">Live Monitor</span>
+    </div>
+    <p class="panel-intro">Use these indicators to spot service pressure and prioritize interventions.</p>
+    <div class="split-2">
+      <article>
+        <h3 style="font-size: 1rem; margin: 0 0 0.7rem;">Operational Alerts</h3>
+        <ul class="alert-list">
+          {% for item in admin_alerts %}
+          <li>
+            <div class="alert-head">
+              <strong>{{ item.title }}</strong>
+              <span class="badge-alert badge-{{ item.severity }}">{{ item.severity }}</span>
+            </div>
+            <span class="subtle" style="font-size: 0.82rem;">{{ item.detail }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </article>
+
+      <article>
+        <h3 style="font-size: 1rem; margin: 0 0 0.7rem;">Overview</h3>
+        <ul class="overview-list">
+          <li><span class="subtle">Open Inquiries</span><strong>{{ admin_overview.open_inquiries }}</strong></li>
+          <li><span class="subtle">Unverified Users</span><strong>{{ admin_overview.unverified_users }}</strong></li>
+          <li><span class="subtle">Low Engagement Listings</span><strong>{{ admin_overview.low_engagement_listings }}</strong></li>
+            <li><span class="subtle">Seller Accounts</span><strong>{{ admin_overview.seller_accounts }}</strong></li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>User Management</h2>
+      <span class="meta-pill">Account Control</span>
+    </div>
+    <p class="panel-intro">Adjust account roles and remove accounts when policy requires it.</p>
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>User / Identity</th>
+            <th>Role</th>
+            <th>Stats</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in user_stats %}
+          <tr>
+            <td>
+              <strong style="display: block;">{{ item.username }}</strong>
+              <span class="subtle" style="font-size: 0.8rem;">{{ item.email }}</span>
+            </td>
+            <td><span class="meta-pill" style="font-size: 0.72rem;">{{ item.role }}</span></td>
+            <td style="font-size: 0.84rem;">
+              <strong>{{ item.listing_count }}</strong> listings,
+              <strong>{{ item.inquiries_count }}</strong> inquiries
+            </td>
+            <td>
+              <div style="display: grid; gap: 0.45rem;">
+                <form method="post" action="/admin/users/{{ item.id }}/role" class="role-form" data-submit-state>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <select name="role" class="role-select" aria-label="Role for {{ item.username }}">
+                    <option value="buyer" {{ 'selected' if item.role == 'buyer' else '' }}>buyer</option>
+                    <option value="seller" {{ 'selected' if item.role == 'seller' else '' }}>seller</option>
+                    <option value="supervisor" {{ 'selected' if item.role == 'supervisor' else '' }}>supervisor</option>
+                    <option value="admin" {{ 'selected' if item.role == 'admin' else '' }}>admin</option>
+                  </select>
+                  <button type="submit" class="btn btn-outline btn-sm" data-loading-text="Updating...">Update</button>
+                </form>
+
+                {% if item.id != user.id %}
+                <form method="post" action="/admin/users/{{ item.id }}/delete" onsubmit="return confirm('Delete user {{ item.username }}?');" data-submit-state>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button type="submit" class="ghost-btn" style="color: #ef4444; font-weight: 700;" data-loading-text="Deleting...">Delete User</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>Seller Performance</h2>
+      <span class="meta-pill">Top Contributors</span>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table" style="min-width: 620px;">
+        <thead>
+          <tr>
+            <th>Seller</th>
+            <th>Listings</th>
+            <th>Inquiries</th>
+            <th>Demand Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in seller_performance %}
+          <tr>
+            <td><strong>{{ item.username }}</strong></td>
+            <td>{{ item.listing_count }}</td>
+            <td>{{ item.inquiries }}</td>
+            <td>{{ item.demand_score }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>Listing Inventory</h2>
+      <span class="meta-pill">Global Management</span>
+    </div>
+    <p class="panel-intro">Edit listing details inline and remove records that should no longer be visible.</p>
+    <div class="listing-grid">
+      {% for listing in listings %}
+      <article class="listing-card">
+        <div class="listing-admin-head">
+          <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="lazy" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+          <div>
+          <h3>{{ listing.title }}</h3>
+          <p class="subtle" style="font-size: 0.81rem; margin: 0.2rem 0 0;">{{ listing.location }} | Seller ID: {{ listing.seller_id }}</p>
+          </div>
+        </div>
+
+        <form method="post" action="/admin/listings/{{ listing.id }}/update" class="listing-form" data-submit-state>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <div class="listing-form-grid">
+            <label>Title
+              <input type="text" name="title" value="{{ listing.title }}" required />
+            </label>
+            <label>Price ($)
+              <input type="number" name="price" value="{{ listing.price }}" required />
+            </label>
+            <label>Game / Franchise
+              <input type="text" name="location" value="{{ listing.location }}" required />
+            </label>
+            <label>Stock
+              <input type="number" name="size" value="{{ listing.size }}" required />
+            </label>
+            <label>Release Year
+              <input type="number" name="bedrooms" value="{{ listing.bedrooms }}" required />
+            </label>
+            <label>Rarity Score
+              <input type="number" name="bathrooms" value="{{ listing.bathrooms }}" required />
+            </label>
+            <label>Rarity
+              <input type="text" name="property_type" value="{{ listing.property_type }}" required />
+            </label>
+            <label>Condition
+              <select name="furnished">
+                <option value="near_mint" {{ 'selected' if listing.furnished == 'near_mint' else '' }}>Near Mint</option>
+                <option value="lightly_played" {{ 'selected' if listing.furnished == 'lightly_played' else '' }}>Lightly Played</option>
+                <option value="moderately_played" {{ 'selected' if listing.furnished == 'moderately_played' else '' }}>Moderately Played</option>
+                <option value="heavily_played" {{ 'selected' if listing.furnished == 'heavily_played' else '' }}>Heavily Played</option>
+                <option value="damaged" {{ 'selected' if listing.furnished == 'damaged' else '' }}>Damaged</option>
+              </select>
+            </label>
+          </div>
+
+          <label style="margin-top: 0.55rem;">Description
+            <textarea name="description" rows="3">{{ listing.description }}</textarea>
+          </label>
+
+          <div class="listing-actions">
+            <button type="submit" class="btn btn-primary btn-sm" data-loading-text="Saving...">Save Changes</button>
+          </div>
+        </form>
+
+        <form method="post" action="/admin/listings/{{ listing.id }}/delete" onsubmit="return confirm('Delete listing?');" data-submit-state>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit" class="ghost-btn" style="color: #ef4444; font-weight: 700;" data-loading-text="Removing...">Remove Listing</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>UX Insights</h2>
+      <span class="meta-pill">Real User Telemetry</span>
+    </div>
+    <p class="panel-intro">Latest frontend quality signals from browser sessions (rolling in-memory buffer).</p>
+    <div class="ux-grid">
+      <article class="ux-item"><span>Recent Events</span><strong>{{ ux_summary.recent_events }}</strong></article>
+      <article class="ux-item"><span>Frontend Errors</span><strong>{{ ux_summary.error_events }}</strong></article>
+      <article class="ux-item"><span>Avg LCP</span><strong>{{ ux_summary.avg_lcp_ms ~ ' ms' if ux_summary.avg_lcp_ms is not none else 'N/A' }}</strong></article>
+      <article class="ux-item"><span>Avg CLS</span><strong>{{ ux_summary.avg_cls if ux_summary.avg_cls is not none else 'N/A' }}</strong></article>
+      <article class="ux-item"><span>Avg INP</span><strong>{{ ux_summary.avg_inp_ms ~ ' ms' if ux_summary.avg_inp_ms is not none else 'N/A' }}</strong></article>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table" style="min-width: 520px;">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Event Volume</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in ux_summary.top_paths %}
+          <tr>
+            <td><strong>{{ item.path }}</strong></td>
+            <td>{{ item.events }}</td>
+          </tr>
+          {% endfor %}
+          {% if not ux_summary.top_paths %}
+          <tr>
+            <td colspan="2" class="subtle">No UX telemetry yet. Browse the app to generate events.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>System Actions</h2>
+      <span class="meta-pill">Quick Links</span>
+    </div>
+    <div class="system-actions">
+      <a href="/dashboard" class="btn btn-outline">User View</a>
+      <a href="/listings/new" class="btn btn-primary">New Listing</a>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.querySelectorAll('form[data-submit-state]').forEach((form) => {
+    form.addEventListener('submit', () => {
+      const button = form.querySelector('button[type="submit"]');
+      if (!button || button.disabled) {
+        return;
+      }
+      button.dataset.originalText = button.textContent;
+      button.textContent = button.dataset.loadingText || 'Working...';
+      button.disabled = true;
+      button.classList.add('is-loading');
+    });
+  });
+</script>
+{% endblock %}

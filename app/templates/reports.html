@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Monthly Reports - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .report-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.85rem; }
+  .report-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .report-card strong { display: block; font-size: 1.55rem; margin-top: 0.35rem; color: var(--brand); }
+  .report-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  .report-table { width: 100%; border-collapse: collapse; }
+  .report-table caption { text-align: left; color: var(--text-muted); padding-bottom: 0.5rem; }
+  .report-table th, .report-table td { text-align: left; border-bottom: 1px solid var(--line); padding: 0.62rem; vertical-align: middle; }
+  .report-table th { color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; }
+  .bar-track { min-width: 140px; height: 10px; border-radius: 999px; background: color-mix(in srgb, var(--line) 55%, transparent); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--accent)); }
+  .month-form { display: flex; gap: 0.55rem; flex-wrap: wrap; justify-content: flex-end; }
+  .month-form input { width: 96px; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 0.5rem; background: var(--bg); color: var(--text); }
+  @media (max-width: 980px) { .report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .report-lists { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .report-grid { grid-template-columns: 1fr; } .month-form { justify-content: flex-start; } }
+</style>
+
+<div class="section-head">
+  <div>
+    <h1 style="margin: 0;">Supervisor Monthly Report</h1>
+    <p class="subtle">{{ report.month }}/{{ report.year }} sales analytics, top cards, sellers, and payment log summary.</p>
+  </div>
+  <form class="month-form" method="get" action="/reports" aria-label="Change report month">
+    <label class="sr-only" for="report-month">Month</label>
+    <input id="report-month" name="month" type="number" min="1" max="12" value="{{ report.month }}" />
+    <label class="sr-only" for="report-year">Year</label>
+    <input id="report-year" name="year" type="number" min="2020" max="2100" value="{{ report.year }}" />
+    <button class="btn btn-outline" type="submit">Update</button>
+  </form>
+</div>
+
+<section class="report-grid" aria-label="Sales KPIs">
+  <article class="report-card"><span class="subtle">Total Revenue</span><strong>${{ "{:,}".format(report.total_sales) }}</strong></article>
+  <article class="report-card"><span class="subtle">Cards Sold</span><strong>{{ report.cards_sold }}</strong></article>
+  <article class="report-card"><span class="subtle">Orders</span><strong>{{ report.order_count }}</strong></article>
+  <article class="report-card"><span class="subtle">Avg Order</span><strong>${{ "{:,}".format(report.average_order_value) }}</strong></article>
+  <article class="report-card"><span class="subtle">Active Sellers</span><strong>{{ report.active_sellers }}</strong></article>
+</section>
+
+<section class="report-lists">
+  <article class="report-card">
+    <h2 style="margin-top: 0;">Top-Selling Cards</h2>
+    <table class="report-table">
+      <caption>Cards ranked by quantity sold in the selected month.</caption>
+      <thead><tr><th>Card</th><th>Sold</th></tr></thead>
+      <tbody>
+      {% for name, count in report.top_cards %}
+      <tr><td>{{ name }}</td><td>{{ count }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" class="subtle">No card sales this month.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  <article class="report-card">
+    <h2 style="margin-top: 0;">Top Sellers</h2>
+    <table class="report-table">
+      <caption>Sellers ranked by simulated revenue in the selected month.</caption>
+      <thead><tr><th>Seller</th><th>Revenue</th></tr></thead>
+      <tbody>
+      {% for name, total in report.top_sellers %}
+      <tr><td>{{ name }}</td><td>${{ "{:,}".format(total) }}</td></tr>
+      {% else %}
+      <tr><td colspan="2" class="subtle">No seller revenue this month.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+</section>
+
+<section class="report-card" style="margin-top: 1rem;">
+  <h2 style="margin-top: 0;">Revenue by Month</h2>
+  <table class="report-table">
+    <caption>All completed simulated orders grouped by month.</caption>
+    <thead><tr><th>Month</th><th>Revenue</th><th>Trend</th></tr></thead>
+    <tbody>
+    {% for label, total in report.revenue_by_month %}
+    <tr>
+      <td>{{ label }}</td>
+      <td>${{ "{:,}".format(total) }}</td>
+      <td>
+        <div class="bar-track" aria-label="{{ label }} revenue {{ total }}">
+          <div class="bar-fill" style="width: {{ (total / report.max_monthly_revenue * 100) if report.max_monthly_revenue else 0 }}%;"></div>
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3" class="subtle">No payment history yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="report-card" style="margin-top: 1rem;">
+  <h2 style="margin-top: 0;">Payment Logs Summary</h2>
+  <table class="report-table">
+    <caption>Recent simulated order/payment records for the selected month.</caption>
+    <thead><tr><th>Reference</th><th>Card</th><th>Amount</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for order in report.payment_logs %}
+      <tr>
+        <td>{{ order.transaction_ref }}</td>
+        <td>{{ order.listing.title if order.listing else 'Listing #' ~ order.listing_id }}</td>
+        <td>${{ "{:,}".format(order.total_price) }}</td>
+        <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="subtle">No payments recorded for this month.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}500 - Server Error | TCG Trove{% endblock %}
+{% block content %}
+<div style="min-height: 64vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem;" data-reveal>
+  <div class="glass" style="padding: 2.6rem; max-width: 580px; border-radius: 1.4rem; width: 100%; border-color: rgba(239, 68, 68, 0.2);">
+    <p class="meta-pill" style="margin: 0 auto 0.8rem; display: inline-flex; background: #fee2e2; color: #991b1b;">Error 500</p>
+    <h1 style="font-size: 5rem; font-weight: 900; color: #ef4444; margin: 0; line-height: 1;">500</h1>
+    <h2 style="margin: 0.9rem 0 0.5rem;">Something Went Wrong</h2>
+    <p class="subtle" style="margin: 0 auto 1.2rem; max-width: 430px;">A server-side issue interrupted this request. Your data is safe, but this page could not load right now.</p>
+
+    <div style="display: grid; gap: 0.55rem; text-align: left; border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.9rem; background: rgba(255, 255, 255, 0.45);">
+      <strong style="font-size: 0.92rem;">Recovery options:</strong>
+      <span class="subtle" style="font-size: 0.84rem;">Retry this action in a few moments.</span>
+      <span class="subtle" style="font-size: 0.84rem;">Return to dashboard or go to the home page if this persists.</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; margin-top: 1.2rem;">
+      <a href="javascript:location.reload()" class="btn btn-primary">Try Again</a>
+      <a href="/dashboard" class="btn btn-outline">Dashboard</a>
+      <a href="/" class="btn btn-outline">Go Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

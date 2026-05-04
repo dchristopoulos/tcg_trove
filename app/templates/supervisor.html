@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Supervisor Dashboard - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .supervisor-hero { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; margin-bottom: 1rem; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin-bottom: 1rem; }
+  .kpi-card, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .kpi-card strong { display: block; font-size: 1.7rem; color: var(--brand); margin-top: 0.2rem; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+  .table-wrap { overflow-x: auto; }
+  .supervisor-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+  .supervisor-table th, .supervisor-table td { text-align: left; border-bottom: 1px solid var(--line); padding: 0.65rem; vertical-align: middle; }
+  .supervisor-table th { color: var(--text-muted); text-transform: uppercase; font-size: 0.76rem; }
+  .role-form { display: flex; gap: 0.45rem; flex-wrap: wrap; align-items: center; }
+  .role-form select { min-height: 38px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); padding: 0.45rem; }
+  .role-counts { display: grid; gap: 0.55rem; }
+  .role-count-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid var(--line); }
+  .tool-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; margin: 1rem 0; }
+  .tool-card { display: grid; gap: 0.35rem; min-height: 126px; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .tool-card:hover { border-color: color-mix(in srgb, var(--brand) 42%, var(--line)); background: color-mix(in srgb, var(--brand) 8%, var(--surface)); }
+  .tool-card strong { font-size: 1.05rem; color: var(--text-primary); }
+  .tool-card span { color: var(--text-muted); font-size: 0.9rem; }
+  @media (max-width: 900px) { .kpi-grid, .split, .tool-grid { grid-template-columns: 1fr; } .supervisor-hero { display: block; } }
+</style>
+
+<section class="supervisor-hero">
+  <div>
+    <h1 style="margin: 0;">Supervisor Dashboard</h1>
+    <p class="subtle">Review marketplace activity and assign Buyer/Seller permissions for normal user accounts.</p>
+  </div>
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <a href="#user-permissions" class="btn btn-primary">Manage Permissions</a>
+    <a href="/reports" class="btn btn-outline">Monthly Report</a>
+  </div>
+</section>
+
+{% if message %}<p class="alert alert-info">{{ message }}</p>{% endif %}
+
+<section class="kpi-grid" aria-label="Supervisor summary">
+  <article class="kpi-card"><span class="subtle">Users</span><strong>{{ users|length }}</strong></article>
+  <article class="kpi-card"><span class="subtle">Listings</span><strong>{{ listings|length }}</strong></article>
+  <article class="kpi-card"><span class="subtle">Messages</span><strong>{{ inquiries|length }}</strong></article>
+  <article class="kpi-card"><span class="subtle">Payment Logs</span><strong>{{ payment_logs|length }}</strong></article>
+</section>
+
+<section class="tool-grid" aria-label="Supervisor tools">
+  <a class="tool-card" href="#user-permissions">
+    <strong>User Permissions</strong>
+    <span>Assign Buyer or Seller access for demo accounts without exposing admin-only roles.</span>
+  </a>
+  <a class="tool-card" href="/reports">
+    <strong>Monthly Reports</strong>
+    <span>Review sales totals, cards sold, top sellers, and payment logs.</span>
+  </a>
+  <a class="tool-card" href="/dashboard">
+    <strong>Marketplace Dashboard</strong>
+    <span>Open the regular dashboard view for account-level activity.</span>
+  </a>
+  <a class="tool-card" href="/permissions">
+    <strong>Permission Guide</strong>
+    <span>Show the role matrix used during grading and demos.</span>
+  </a>
+</section>
+
+<section class="split">
+  <article class="panel">
+    <h2 style="margin-top: 0;">Role Distribution</h2>
+    <div class="role-counts">
+      {% for role, count in role_counts.items()|sort %}
+      <div class="role-count-row"><span>{{ role|title }}</span><strong>{{ count }}</strong></div>
+      {% else %}
+      <p class="subtle">No users found.</p>
+      {% endfor %}
+    </div>
+  </article>
+  <article class="panel">
+    <h2 style="margin-top: 0;">Supervisor Scope</h2>
+    <p class="subtle">Supervisors can promote buyers to sellers or return sellers to buyer permissions for demo workflow control. Admin and supervisor accounts are locked here to prevent accidental privilege escalation.</p>
+  </article>
+</section>
+
+<section class="panel" id="user-permissions" style="margin-top: 1rem;">
+  <div class="section-head">
+    <div>
+      <h2 style="margin: 0;">User Permissions</h2>
+      <p class="subtle">Select the role each normal user should have during the demonstration.</p>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="supervisor-table">
+      <thead>
+        <tr><th>User</th><th>Current Role</th><th>Activity</th><th>Set Permissions</th></tr>
+      </thead>
+      <tbody>
+        {% for item in user_stats %}
+        <tr>
+          <td>
+            <strong style="display:block;">{{ item.username }}</strong>
+            <span class="subtle">{{ item.email }}</span>
+          </td>
+          <td><span class="meta-pill">{{ item.role }}</span></td>
+          <td>{{ item.listing_count }} listings · {{ item.favorites_count }} wishlist · {{ item.inquiries_count }} messages</td>
+          <td>
+            {% if item.can_assign and item.id != user.id %}
+            <form method="post" action="/supervisor/users/{{ item.id }}/role" class="role-form" data-submit-state>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <select name="role" aria-label="Role for {{ item.username }}">
+                <option value="buyer" {{ 'selected' if item.role == 'buyer' else '' }}>Buyer</option>
+                <option value="seller" {{ 'selected' if item.role == 'seller' else '' }}>Seller</option>
+              </select>
+              <button class="btn btn-outline btn-sm" type="submit" data-loading-text="Updating...">Update</button>
+            </form>
+            {% else %}
+            <span class="subtle">Locked</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="subtle">No users available.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

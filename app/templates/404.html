@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}404 - Page Not Found | TCG Trove{% endblock %}
+{% block content %}
+<div style="min-height: 64vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem;" data-reveal>
+  <div class="glass" style="padding: 2.6rem; max-width: 580px; border-radius: 1.4rem; width: 100%;">
+    <p class="meta-pill" style="margin: 0 auto 0.8rem; display: inline-flex;">Error 404</p>
+    <h1 style="font-size: 5rem; font-weight: 900; background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; line-height: 1;">404</h1>
+    <h2 style="margin: 0.9rem 0 0.5rem;">Page Not Found</h2>
+    <p class="subtle" style="margin: 0 auto 1.25rem; max-width: 420px;">The page may have moved, the link may be outdated, or the address may be incorrect.</p>
+
+    <div style="display: grid; gap: 0.55rem; text-align: left; border: 1px solid var(--line); border-radius: 0.8rem; padding: 0.9rem; background: rgba(255, 255, 255, 0.45);">
+      <strong style="font-size: 0.92rem;">Try one of these:</strong>
+      <span class="subtle" style="font-size: 0.84rem;">Check the URL for typos and refresh.</span>
+      <span class="subtle" style="font-size: 0.84rem;">Go back to your dashboard or browse listings from scratch.</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; margin-top: 1.2rem;">
+      <a href="/" class="btn btn-primary">Go Home</a>
+      <a href="/dashboard" class="btn btn-outline">Dashboard</a>
+      <a href="/listings" class="btn btn-outline">Browse Listings</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

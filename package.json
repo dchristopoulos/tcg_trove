@@ -1,0 +1,43 @@
+{
+  "name": "tcg_troveapi",
+  "version": "1.0.0",
+  "description": "A small FastAPI project with users and listings.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "dev:start": ".venv\\Scripts\\python.exe scripts/dev_server.py",
+    "dev:start:reload": ".venv\\Scripts\\python.exe scripts/dev_server.py --reload",
+    "prod:preflight": "python -m scripts.prod_preflight --env-file .env",
+    "prod:gate": "python -m ruff check . && python -m pytest -q && python -m scripts.prod_preflight --env-file .env && npm run ui:parallel",
+    "assets:css:minify": "esbuild app/static/styles.css --minify --outfile=app/static/styles.min.css",
+    "ui:flows": "playwright test -c ui-audits/playwright.flows.config.js",
+    "ui:a11y": "playwright test -c ui-audits/playwright.a11y.config.js",
+    "ui:visual": "playwright test -c ui-audits/playwright.visual.config.js",
+    "ui:visual:update": "playwright test -c ui-audits/playwright.visual.config.js --update-snapshots",
+    "ui:lighthouse:home": "node ui-audits/run-lighthouse.mjs http://127.0.0.1:8010 ./ui-audits/reports/lighthouse-home.json ./ui-audits/.chrome-home",
+    "ui:lighthouse:listings": "node ui-audits/run-lighthouse.mjs http://127.0.0.1:8010/listings ./ui-audits/reports/lighthouse-listings.json ./ui-audits/.chrome-listings",
+    "ui:lighthouse": "npm run ui:lighthouse:home && npm run ui:lighthouse:listings",
+    "ui:all": "npm run ui:flows && npm run ui:a11y && npm run ui:lighthouse",
+    "ui:parallel:local": "concurrently -n flows,a11y,lh \"npm run ui:flows\" \"npm run ui:a11y\" \"npm run ui:lighthouse\"",
+    "ui:parallel": "start-server-and-test \".venv\\Scripts\\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8010\" http-get://127.0.0.1:8010 \"npm run ui:parallel:local\"",
+    "ci:smoke": "npm run assets:css:minify && npm run ui:parallel",
+    "db:backup": "python scripts/db_backup.py",
+    "db:restore": "python scripts/db_restore.py",
+    "data:retention": "python scripts/data_retention.py"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@playwright/test": "^1.59.1",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.25.11",
+    "lighthouse": "^13.1.0",
+    "start-server-and-test": "^3.0.0"
+  }
+}

@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - TCG Trove{% endblock %}
+
+{% block content %}
+<style>
+  .dash-page {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .dash-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    border-radius: 1.25rem;
+    padding: 2rem;
+    border: 1px solid #1e293b;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .dash-hero h1 {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .dash-hero p {
+    margin: 0;
+    color: #cbd5e1;
+  }
+
+  .status-banner {
+    margin-top: 1rem;
+    display: inline-block;
+    border-radius: 0.65rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(30, 64, 175, 0.22);
+    border: 1px solid rgba(147, 197, 253, 0.4);
+    color: #dbeafe;
+    font-size: 0.9rem;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.2rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .kpi-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .kpi-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+
+  .kpi-note {
+    margin-top: 0.45rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .panel-head h2 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+
+  .panel-intro {
+    margin: 0 0 1rem;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+  }
+
+  .split-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .trend-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0.9rem;
+    padding: 1rem;
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .trend-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .trend-top strong {
+    font-size: 1rem;
+  }
+
+  .delta-chip {
+    border-radius: 999px;
+    padding: 0.22rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .delta-up {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .delta-down {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .sparkline {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 94px;
+  }
+
+  .spark-col {
+    flex: 1;
+    display: grid;
+    justify-items: center;
+    gap: 0.3rem;
+  }
+
+  .spark-bar {
+    width: 100%;
+    background: var(--brand);
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+  }
+
+  .spark-save {
+    background: #f59e0b;
+  }
+
+  .spark-col small {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  .stack-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .stack-item {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .alert-high {
+    border-left: 4px solid #ef4444;
+  }
+
+  .alert-medium {
+    border-left: 4px solid #f59e0b;
+  }
+
+  .alert-low {
+    border-left: 4px solid #3b82f6;
+  }
+
+  .action-row,
+  .watch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .metric-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .mini-card {
+    border: 1px solid var(--line);
+    border-radius: 0.8rem;
+    padding: 0.9rem;
+    background: var(--bg);
+  }
+
+  .mini-card span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  .mini-card strong {
+    font-size: 1.3rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  .perf-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+  }
+
+  .perf-table th,
+  .perf-table td {
+    text-align: left;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .perf-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  .perf-table tbody tr:nth-child(odd) {
+    background: rgba(148, 163, 184, 0.06);
+  }
+
+  .meter {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    width: 95px;
+  }
+
+  .meter > i {
+    display: block;
+    height: 100%;
+    background: var(--brand);
+  }
+
+  .split-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .stats-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .stats-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stats-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.5rem;
+  }
+
+  .platform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .platform-grid .mini-card {
+    background: var(--bg);
+  }
+
+  @media (max-width: 960px) {
+    .split-2,
+    .split-3,
+    .platform-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .action-row,
+    .watch-row {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
+
+<div class="dash-page">
+  <section class="dash-hero" data-reveal>
+    <h1>Marketplace Dashboard</h1>
+    <span class="sr-only">Decision Dashboard</span>
+    {% if user %}
+    <p>Welcome, {{ user.username }}. Track card demand, saved cards, seller messages, and next actions.</p>
+    {% else %}
+    <p>Track card demand, saved cards, seller messages, and next actions.</p>
+    {% endif %}
+    {% if message %}
+    <div class="status-banner">{{ message }}</div>
+    {% endif %}
+  </section>
+
+  <section class="kpi-grid" data-reveal data-stagger>
+    <article class="kpi-card">
+      <span class="kpi-label">Seller Health<span class="sr-only"> Portfolio Health</span></span>
+      <div class="kpi-value">{{ benchmark.health_score }}%</div>
+      <div class="kpi-note">Optimized for platform standards</div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Inquiry Rate</span>
+      <div class="kpi-value">{{ benchmark.my_avg_inquiries_per_listing }}</div>
+      <div class="kpi-note">Average per listing</div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Market Average</span>
+      <div class="kpi-value">{{ benchmark.platform_avg_inquiries_per_listing }}</div>
+      <div class="kpi-note">Competitive benchmark</div>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Conversion</span>
+      <div class="kpi-value">{{ benchmark.favorite_conversion_rate }}%</div>
+      <div class="kpi-note">Save-to-inquiry rate</div>
+    </article>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>Trend Pulse</h2>
+      <span class="meta-pill">Last 7 Days</span>
+    </div>
+    <p class="panel-intro">Recent engagement movement across inquiries and saves.</p>
+    <div class="split-2">
+      <article class="trend-card">
+        <div class="trend-top">
+          <strong>Inquiries</strong>
+          <span class="delta-chip {{ 'delta-up' if trend.inquiries_delta >= 0 else 'delta-down' }}">
+            {{ '+' if trend.inquiries_delta >= 0 else '' }}{{ trend.inquiries_delta }}%
+          </span>
+        </div>
+        <p class="subtle">{{ trend.inquiries_last_7 }} total interactions this week</p>
+        <div class="sparkline" aria-label="Inquiry trend chart">
+          {% for item in trend.inquiry_bars %}
+          <div class="spark-col" title="{{ item.day }}: {{ item.count }}">
+            <span class="spark-bar" style="height: {{ item.height }}px;"></span>
+            <small>{{ item.day }}</small>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+
+      <article class="trend-card">
+        <div class="trend-top">
+          <strong>Saves</strong>
+          <span class="delta-chip {{ 'delta-up' if trend.favorites_delta >= 0 else 'delta-down' }}">
+            {{ '+' if trend.favorites_delta >= 0 else '' }}{{ trend.favorites_delta }}%
+          </span>
+        </div>
+        <p class="subtle">{{ trend.favorites_last_7 }} cards saved this week</p>
+        <div class="sparkline" aria-label="Favorites trend chart">
+          {% for item in trend.favorite_bars %}
+          <div class="spark-col" title="{{ item.day }}: {{ item.count }}">
+            <span class="spark-bar spark-save" style="height: {{ item.height }}px;"></span>
+            <small>{{ item.day }}</small>
+          </div>
+          {% endfor %}
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="split-2" data-reveal>
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Attention Alerts</h2>
+      </div>
+      <p class="panel-intro">Listings that need intervention soon.</p>
+      <ul class="stack-list">
+        {% for item in dashboard_alerts %}
+        <li class="stack-item alert-{{ item.severity }}">
+          <strong style="display: block; margin-bottom: 0.3rem;">{{ item.title }}</strong>
+          <span class="subtle" style="font-size: 0.86rem;">{{ item.detail }}</span>
+        </li>
+        {% else %}
+        <li class="stack-item subtle" style="text-align: center;">All systems operational. No alerts found.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Marketplace Snapshot</h2>
+      </div>
+      <p class="panel-intro">Current marketplace footprint and recommended next moves.</p>
+      <div class="metric-mini" style="margin-bottom: 1rem;">
+        <div class="mini-card">
+          <span>Active Listings</span>
+          <strong>{{ personal_metrics.my_listings }}</strong>
+        </div>
+        <div class="mini-card">
+          <span>Total Inquiries</span>
+          <strong>{{ personal_metrics.inquiries_on_my_listings }}</strong>
+        </div>
+      </div>
+      <ul class="stack-list">
+        {% for item in quick_actions %}
+        <li class="stack-item action-row">
+          <span>
+            <strong style="display: block; margin-bottom: 0.2rem;">{{ item.label }}</strong>
+            <span class="subtle" style="font-size: 0.85rem;">{{ item.detail }}</span>
+          </span>
+          <a href="{{ item.href }}" class="btn btn-primary btn-sm">Take Action</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>Your Watchlist</h2>
+      <a href="/listings" class="btn btn-outline btn-sm">Browse Cards</a>
+    </div>
+    <p class="panel-intro">Saved cards with quick access for follow-up.</p>
+    <ul class="stack-list">
+      {% for listing in my_favorite_listings %}
+      <li class="stack-item watch-row">
+        <span>
+          <strong style="display: block;">{{ listing.title }}</strong>
+          <span class="subtle" style="font-size: 0.85rem;">{{ listing.location }}</span>
+        </span>
+        <a href="/listings/{{ listing.id }}" class="btn btn-outline btn-sm">View Details</a>
+      </li>
+      {% else %}
+      <li class="stack-item" style="text-align: center;">
+        <p class="subtle" style="margin-bottom: 0.7rem;">You have not saved any cards yet.</p>
+        <a href="/listings" class="btn btn-outline">Explore Cards</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="panel-head">
+      <h2>Listing Performance</h2>
+      <span class="meta-pill">Ranked by Market Score</span>
+    </div>
+    <p class="panel-intro">Compare demand and conversion signals across your listings.</p>
+    <div class="table-wrap">
+      <table class="perf-table">
+        <thead>
+          <tr>
+            <th>Listing</th>
+            <th>Price</th>
+            <th>Demand</th>
+            <th>Performance Score</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in listing_performance %}
+          <tr>
+            <td>
+              <strong style="display: block;">{{ item.title }}</strong>
+              <span class="subtle" style="font-size: 0.82rem;">{{ item.location }}</span>
+            </td>
+            <td><strong>${{ "{:,}".format(item.price) }}</strong></td>
+            <td>
+              <span style="font-size: 0.84rem;">
+                <strong style="color: var(--brand);">{{ item.inquiries }}</strong> inquiries
+                <span class="subtle"> / </span>
+                <strong style="color: #f59e0b;">{{ item.favorites }}</strong> saves
+              </span>
+            </td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="meter"><i style="width: {{ item.score }}%;"></i></span>
+                <strong>{{ item.score }}</strong>
+              </div>
+            </td>
+            <td style="text-align: right;">
+              <a href="/listings/{{ item.id }}" class="btn btn-outline btn-sm">View</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="subtle" style="text-align: center; padding: 1.8rem;">
+              No listing data available.
+              <a href="/listings/new" style="color: var(--brand); font-weight: 700;">Create your first listing</a>.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="split-3" data-reveal data-stagger>
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Market Snapshot</h2>
+      </div>
+      <ul class="stats-list">
+        <li>
+          <span class="subtle">Avg Listing Price</span>
+          <strong style="color: var(--brand);">${{ "{:,}".format(stats.avg_listing_price|int) }}</strong>
+        </li>
+        <li>
+          <span class="subtle">Avg Stock</span>
+          <strong>{{ stats.avg_listing_size|int }}</strong>
+        </li>
+        <li style="display: block;">
+          <span class="subtle">Top Locations</span>
+          <div class="chip-row">
+            {% for location, count in stats.top_locations %}
+            <span class="meta-pill" style="font-size: 0.74rem;">{{ location }}</span>
+            {% endfor %}
+          </div>
+        </li>
+      </ul>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Demand Hotspots</h2>
+      </div>
+      <ul class="stats-list">
+        {% for location, count in demand_hotspots %}
+        <li>
+          <strong>{{ location }}</strong>
+          <span class="meta-pill" style="background: #eff6ff; color: #1d4ed8;">{{ count }} inquiries</span>
+        </li>
+        {% else %}
+        <li class="subtle">Waiting for demand data...</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="panel">
+      <div class="panel-head">
+        <h2>Platform Stats</h2>
+      </div>
+      <div class="platform-grid">
+        <div class="mini-card">
+          <span>Active Users</span>
+          <strong>{{ stats.total_users }}</strong>
+        </div>
+        <div class="mini-card">
+          <span>Cards</span>
+          <strong>{{ stats.total_listings }}</strong>
+        </div>
+        <div class="mini-card">
+          <span>Total Saves</span>
+          <strong>{{ stats.total_favorites }}</strong>
+        </div>
+        <div class="mini-card">
+          <span>Inquiries</span>
+          <strong>{{ stats.total_inquiries }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+</div>
+{% endblock %}

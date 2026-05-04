@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mc-shell {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .mc-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .mc-profile,
+  .mc-shared {
+    border: 1px solid var(--line);
+    border-radius: 0.95rem;
+    background: var(--surface);
+    padding: 1rem;
+  }
+
+  .mc-profile {
+    position: sticky;
+    top: 5.25rem;
+  }
+
+  .mc-profile-top {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .mc-avatar {
+    width: 2.45rem;
+    height: 2.45rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    background: #dbeafe;
+    color: #1e3a8a;
+    flex: 0 0 auto;
+  }
+
+  .mc-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.72rem;
+  }
+
+  .mc-stat {
+    border: 1px solid var(--line);
+    border-radius: 0.7rem;
+    padding: 0.55rem;
+    text-align: center;
+    background: color-mix(in srgb, var(--surface) 84%, var(--bg));
+  }
+
+  .mc-stat strong {
+    display: block;
+    font-size: 1.03rem;
+  }
+
+  .mc-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.95rem;
+  }
+
+  .mc-list {
+    display: grid;
+    gap: 0.72rem;
+  }
+
+  .mc-item {
+    border: 1px solid var(--line);
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    display: grid;
+    gap: 0.55rem;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .mc-item:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--brand) 32%, var(--line));
+    box-shadow: 0 10px 22px rgba(23, 44, 77, 0.1);
+  }
+
+  .mc-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .mc-status-chip {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .mc-status-open {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .mc-status-in_progress {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  .mc-status-responded,
+  .mc-status-closed {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .mc-message {
+    margin: 0;
+    padding: 0.65rem 0.72rem;
+    border: 1px solid var(--line);
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--surface) 84%, var(--bg));
+  }
+
+  .mc-meta {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .mc-item-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mc-empty {
+    border: 1px dashed var(--line);
+    border-radius: 0.85rem;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    padding: 1rem;
+  }
+
+  @media (max-width: 900px) {
+    .mc-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .mc-profile {
+      position: static;
+    }
+  }
+</style>
+
+<div class="mc-shell">
+  <section class="hero-shell" data-reveal>
+    <div class="hero-copy">
+      <h1>Contact Profile</h1>
+      <p>See relationship context, recent shared activity, and quick listing actions.</p>
+    </div>
+  </section>
+
+  <div class="mc-grid" data-reveal>
+    <aside class="mc-profile" aria-label="Contact summary">
+      <div class="mc-profile-top">
+        <span class="mc-avatar">{{ contact.username[:1]|upper }}</span>
+        <div>
+          <h2 style="margin: 0;">{{ contact.username }}</h2>
+          <p class="subtle" style="margin: 0.2rem 0 0 0;">Role: {{ contact.role|replace('_', ' ')|title }}</p>
+        </div>
+      </div>
+
+      <div class="mc-stat-grid" role="list" aria-label="Contact statistics">
+        <div class="mc-stat" role="listitem">
+          <strong>{{ listing_count }}</strong>
+          <span class="subtle">Listings</span>
+        </div>
+        <div class="mc-stat" role="listitem">
+          <strong>{{ sent_inquiries_count }}</strong>
+          <span class="subtle">Sent</span>
+        </div>
+        <div class="mc-stat" role="listitem">
+          <strong>{{ received_inquiries_count }}</strong>
+          <span class="subtle">Received</span>
+        </div>
+      </div>
+
+      <div class="mc-actions">
+        <a href="/messages" class="btn btn-outline">Back to Messages</a>
+      </div>
+    </aside>
+
+    <section class="mc-shared" aria-label="Recent shared conversations">
+      <h2 style="margin-top: 0;">Recent Shared Conversations</h2>
+      {% if shared_rows %}
+      <div class="mc-list">
+        {% for row in shared_rows %}
+        {% set inquiry = row.inquiry %}
+        {% set listing = row.listing %}
+        <article class="mc-item">
+          <div class="mc-item-top">
+            <strong>
+              {% if listing %}
+              <a href="/listings/{{ listing.id }}">{{ listing.title }}</a>
+              {% else %}
+              Listing unavailable
+              {% endif %}
+            </strong>
+            <span class="mc-status-chip mc-status-{{ inquiry.status|lower }}">{{ inquiry.status|replace('_', ' ')|title }}</span>
+          </div>
+
+          <p class="mc-message">{{ inquiry.message }}</p>
+
+          <div class="mc-meta">
+            {{ inquiry.created_at.strftime("%Y-%m-%d %H:%M") if inquiry.created_at else "" }}
+          </div>
+
+          {% if listing %}
+          <div class="mc-item-actions">
+            <a href="/listings/{{ listing.id }}" class="btn btn-primary">Open Listing</a>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="mc-empty">
+        <h3 style="margin: 0;">No shared history</h3>
+        <p class="subtle" style="margin: 0.35rem 0 0 0;">This contact has no conversation history with you yet.</p>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

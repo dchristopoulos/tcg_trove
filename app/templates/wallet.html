@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Wallet - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .wallet-grid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .wallet-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .balance { font-size: 2.25rem; font-weight: 900; margin: 0.15rem 0 0.9rem; color: var(--brand); }
+  .wallet-title { display: flex; align-items: center; gap: 0.6rem; }
+  .wallet-title svg { width: 28px; height: 28px; color: var(--brand); }
+  .money-actions { display: grid; gap: 0.8rem; }
+  .money-card { border: 1px solid var(--line); border-radius: 12px; padding: 0.85rem; background: var(--bg); }
+  .money-card form { display: grid; gap: 0.55rem; }
+  .wallet-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .wallet-stat { border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem; background: var(--bg); }
+  .wallet-stat strong { display: block; font-size: 1.25rem; margin-top: 0.2rem; }
+  .history-table { width: 100%; border-collapse: collapse; }
+  .history-table th, .history-table td { border-bottom: 1px solid var(--line); text-align: left; padding: 0.55rem; font-size: 0.88rem; }
+  @media (max-width: 850px) { .wallet-grid { grid-template-columns: 1fr; } }
+</style>
+
+{% if message %}<p class="alert alert-info">{{ message }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<section class="section-head">
+  <div>
+    <h1 class="wallet-title" style="margin: 0;">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <path d="M4 8.5h15.5A1.5 1.5 0 0 1 21 10v7a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 16.5v-9Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M17 13.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Wallet
+    </h1>
+    <p class="subtle">Virtual money for the project checkout simulation. No real payments are processed.</p>
+  </div>
+  <a href="/cart" class="btn btn-outline">Open Cart</a>
+</section>
+
+<div class="wallet-grid">
+  <aside class="wallet-panel">
+    <p class="subtle">Current balance</p>
+    <p class="balance">${{ "{:,}".format(user.balance or 0) }}</p>
+    <div class="money-actions">
+      <article class="money-card">
+        <h2 style="margin: 0 0 0.5rem; font-size: 1rem;">Deposit</h2>
+        <form method="post" action="/wallet/add">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="next_path" value="/wallet" />
+          <label for="wallet-amount">Virtual deposit amount</label>
+          <input id="wallet-amount" type="number" name="amount" min="1" max="1000000" placeholder="10000" required />
+          <button class="btn btn-primary" type="submit">Deposit Funds</button>
+        </form>
+      </article>
+      <article class="money-card">
+        <h2 style="margin: 0 0 0.5rem; font-size: 1rem;">Withdraw</h2>
+        <form method="post" action="/wallet/withdraw">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <label for="withdraw-amount">Withdrawal amount</label>
+          <input id="withdraw-amount" type="number" name="amount" min="1" max="1000000" placeholder="5000" required />
+          <button class="btn btn-outline" type="submit">Request Withdraw</button>
+        </form>
+        <p class="subtle" style="margin: 0.55rem 0 0;">Withdrawals are intentionally not supported in this payment simulation.</p>
+      </article>
+    </div>
+  </aside>
+
+  <main style="display: grid; gap: 1rem;">
+    <section class="wallet-stats">
+      <article class="wallet-stat">
+        <span class="subtle">Recent spending</span>
+        <strong>${{ "{:,}".format(total_spent) }}</strong>
+      </article>
+      <article class="wallet-stat">
+        <span class="subtle">Recent seller earnings</span>
+        <strong>${{ "{:,}".format(total_earned) }}</strong>
+      </article>
+    </section>
+
+    <section class="wallet-panel">
+      <h2 style="margin-top: 0;">Purchase History</h2>
+      <table class="history-table">
+        <thead><tr><th>Ref</th><th>Card</th><th>Total</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for order in purchases %}
+          <tr>
+            <td>{{ order.transaction_ref }}</td>
+            <td>{{ order.listing.title if order.listing else 'Listing #' ~ order.listing_id }}</td>
+            <td>${{ "{:,}".format(order.total_price) }}</td>
+            <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="subtle">No wallet purchases yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="wallet-panel">
+      <h2 style="margin-top: 0;">Seller Earnings</h2>
+      <table class="history-table">
+        <thead><tr><th>Ref</th><th>Card</th><th>Earned</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for order in sales %}
+          <tr>
+            <td>{{ order.transaction_ref }}</td>
+            <td>{{ order.listing.title if order.listing else 'Listing #' ~ order.listing_id }}</td>
+            <td>${{ "{:,}".format(order.total_price) }}</td>
+            <td>{{ order.created_at.strftime('%Y-%m-%d') if order.created_at else '' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="subtle">No seller earnings yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+{% endblock %}

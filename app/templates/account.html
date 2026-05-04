@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Account Settings - TCG Trove{% endblock %}
+
+{% block content %}
+<style>
+  .account-page {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .account-hero {
+    border: 1px solid var(--line);
+    border-radius: 1.2rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #f8fafc;
+    padding: 1.8rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .account-hero h1 {
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    margin: 0 0 0.3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .account-hero p {
+    margin: 0;
+    color: #cbd5e1;
+  }
+
+  .status-stack {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.6rem;
+    max-width: 640px;
+  }
+
+  .status-banner {
+    border-radius: 0.7rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+  }
+
+  .status-success {
+    background: rgba(22, 163, 74, 0.16);
+    border-color: rgba(134, 239, 172, 0.45);
+    color: #dcfce7;
+  }
+
+  .status-error {
+    background: rgba(153, 27, 27, 0.25);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #fecaca;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 1rem;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    padding: 1.2rem;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .panel h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1.2rem;
+  }
+
+  .section-note {
+    margin: 0 0 0.9rem;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+  }
+
+  .field-grid {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .field label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .field input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 0.7rem;
+    background: var(--bg);
+    padding: 0.72rem 0.82rem;
+  }
+
+  .field input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .field-help {
+    margin: 0.35rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-top: 0.2rem;
+  }
+
+  .meta-box {
+    border: 1px solid var(--line);
+    border-radius: 0.7rem;
+    background: var(--bg);
+    padding: 0.7rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .meta-box span {
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+
+  .action-stack {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .action-stack form,
+  .action-stack a {
+    width: 100%;
+  }
+
+  .danger-zone {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .activity-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .activity-item {
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: var(--bg);
+    padding: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .activity-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+  }
+
+  .activity-item span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .submit-btn[disabled],
+  .submit-btn.is-loading,
+  .btn[disabled],
+  .ghost-btn[disabled] {
+    opacity: 0.72;
+    cursor: wait;
+  }
+
+  @media (max-width: 920px) {
+    .account-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .meta-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="account-page">
+  <section class="account-hero" data-reveal>
+    <h1>Account Settings</h1>
+    <p>Manage profile details, security preferences, and account activity.</p>
+
+    <div class="status-stack" role="status" aria-live="polite">
+      {% if message %}
+      <div class="status-banner status-success">{{ message }}</div>
+      {% endif %}
+      {% if error %}
+      <div class="status-banner status-error">{{ error }}</div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="account-grid" data-reveal data-stagger>
+    <article class="panel">
+      <h2>Profile Information</h2>
+      <p class="section-note">Update your public account details. Changes apply immediately.</p>
+      <form method="post" action="/account/profile" class="field-grid" data-submit-state>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+        <div class="field">
+          <label for="username">Display Username</label>
+          <input type="text" id="username" name="username" value="{{ user.username }}" aria-describedby="account-username-help" required />
+          <p id="account-username-help" class="field-help">This name appears on your listings and public profile.</p>
+        </div>
+
+        <div class="field">
+          <label for="email">Primary Email</label>
+          <input type="email" id="email" name="email" value="{{ user.email }}" aria-describedby="account-email-help" required />
+          <p id="account-email-help" class="field-help">Verification and password recovery emails are sent here.</p>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-box">
+            <span>Account Role</span>
+            <strong>{{ user.role }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Email Status</span>
+            <strong>
+              <span class="meta-pill" style="background: {{ '#dcfce7' if user.email_verified else '#fee2e2' }}; color: {{ '#166534' if user.email_verified else '#991b1b' }};">
+                {{ "Verified" if user.email_verified else "Not verified" }}
+              </span>
+            </strong>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary submit-btn" data-loading-text="Saving...">Save Changes</button>
+      </form>
+    </article>
+
+    <article class="panel">
+      <h2>Security and Account Actions</h2>
+      <p class="section-note">Control login credentials and verification state.</p>
+
+      <div class="action-stack">
+        <a href="/change-password" class="btn btn-outline">Change Password</a>
+
+        {% if not user.email_verified %}
+        <form method="post" action="/account/resend-verification" data-submit-state>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit" class="btn btn-secondary submit-btn" style="width: 100%;" data-loading-text="Sending...">Resend Verification Email</button>
+        </form>
+        {% endif %}
+      </div>
+
+      <div class="danger-zone">
+        <p class="section-note" style="margin-bottom: 0.55rem;">Sign out securely from this session.</p>
+        <form method="post" action="/logout" onsubmit="return confirm('Sign out of all devices?');" data-submit-state>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button type="submit" class="ghost-btn submit-btn" style="width: 100%; color: #ef4444; font-weight: 700;" data-loading-text="Signing Out...">Sign Out</button>
+        </form>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel" data-reveal>
+    <h2>Recent Activity</h2>
+    <ul class="activity-list">
+      {% for event in activity %}
+      <li class="activity-item">
+        <span>
+          <strong>{{ event.action.replace("_", " ").title() }}</strong>
+          <span>{{ event.created_at }}</span>
+        </span>
+      </li>
+      {% else %}
+      <li class="activity-item" style="justify-content: center;">
+        <span class="subtle">No recent activity recorded.</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<script>
+  document.querySelectorAll('form[data-submit-state]').forEach((form) => {
+    form.addEventListener('submit', () => {
+      const button = form.querySelector('button[type="submit"]');
+      if (!button || button.disabled) {
+        return;
+      }
+      button.dataset.originalText = button.textContent;
+      button.textContent = button.dataset.loadingText || 'Working...';
+      button.disabled = true;
+      button.classList.add('is-loading');
+    });
+  });
+</script>
+{% endblock %}

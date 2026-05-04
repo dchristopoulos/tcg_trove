@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "description": "Browser automation & E2E testing (31k stars)"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"],
+      "description": "Browse & install shadcn/ui components (113k stars)"
+    },
+    "magic-ui": {
+      "command": "npx",
+      "args": ["@magicuidesign/mcp@latest"],
+      "description": "Animated UI components: marquee, globe, particles (20.8k stars)"
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "description": "Up-to-date docs for React, FastAPI, Tailwind (53.8k stars)"
+    },
+    "dbhub": {
+      "command": "npx",
+      "args": [
+        "@bytebase/dbhub@latest",
+        "--transport", "stdio",
+        "--dsn", "sqlite:///C:/Users/dimit/Desktop/computer_science/pythonprojects/tcg_troveapi/tcg_trove.db"
+      ],
+      "description": "Query TCG Trove SQLite database directly (1.7k stars)"
+    }
+  }
+}

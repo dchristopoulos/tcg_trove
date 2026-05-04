@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Cards - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .listings-shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 1rem; align-items: start; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .filters { position: sticky; top: 1rem; display: grid; gap: 0.75rem; }
+  .filters label { font-size: 0.78rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; }
+  .filters input, .filters select { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem; background: var(--bg); color: var(--text); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 1rem; align-items: stretch; }
+  .card-listing { overflow: hidden; padding: 0; display: flex; flex-direction: column; min-height: 100%; }
+  .card-media { padding: 0.85rem 0.85rem 0; background: linear-gradient(180deg, rgba(239,246,255,0.92), rgba(255,255,255,0)); }
+  .card-listing img { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; border-radius: 10px; background: #f8fafc; box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12); }
+  .card-body { padding: 0.9rem; display: flex; flex: 1; flex-direction: column; gap: 0.65rem; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .id-chip { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 0.2rem 0.5rem; background: var(--bg); border: 1px solid var(--line); color: var(--text-muted); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
+  .price-pill { font-size: 1.25rem; font-weight: 900; color: var(--brand); }
+  .active-filters { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+  .filter-chip { display: inline-flex; align-items: center; min-height: 28px; border-radius: 999px; padding: 0.25rem 0.65rem; background: color-mix(in srgb, var(--brand) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line)); color: var(--text); font-size: 0.78rem; font-weight: 800; }
+  .listings-summary {
+    padding: 1rem 1.1rem;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, var(--surface)), var(--surface) 72%);
+  }
+  .listings-summary .section-head { margin: 0; align-items: center; }
+  .listings-summary-copy { display: grid; gap: 0.3rem; }
+  .listings-summary-copy h1 { margin: 0; }
+  .listings-summary-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .summary-stat {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.28rem 0.68rem;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 850;
+  }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; }
+  .meta-box { border: 1px solid var(--line); border-radius: 10px; padding: 0.4rem; text-align: center; background: var(--bg); }
+  .meta-box strong { display: block; }
+  .meta-box span { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+  .card-actions { margin-top: auto; display: grid; grid-template-columns: 1fr auto auto; gap: 0.5rem; align-items: stretch; padding-top: 0.15rem; }
+  .card-actions form { display: flex; margin: 0; }
+  .card-actions .btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .card-actions form .btn { width: 100%; }
+  .pagination-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    box-shadow: var(--shadow-sm);
+  }
+  .pagination-summary { color: var(--text-muted); font-weight: 800; }
+  .pagination-controls { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end; }
+  .page-link,
+  .page-current,
+  .page-disabled {
+    min-width: 42px;
+    min-height: 40px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.7rem;
+    font-weight: 900;
+    text-decoration: none;
+  }
+  .page-link { border: 1px solid var(--line); color: var(--text-secondary); background: var(--bg); }
+  .page-link:hover { border-color: color-mix(in srgb, var(--brand) 42%, var(--line)); background: color-mix(in srgb, var(--brand) 10%, var(--surface)); color: var(--text-primary); }
+  .page-current { border: 1px solid color-mix(in srgb, var(--brand) 58%, var(--line)); background: var(--brand); color: #fff; }
+  .page-disabled { border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); color: var(--text-muted); background: color-mix(in srgb, var(--bg) 60%, transparent); opacity: 0.72; }
+  @media (max-width: 900px) { .listings-shell { grid-template-columns: 1fr; } .filters { position: static; } .pagination-wrap { align-items: stretch; flex-direction: column; } .pagination-controls { justify-content: center; } }
+</style>
+
+<div class="listings-shell">
+  <aside class="panel">
+    <h2 style="margin-top: 0;">Filter Cards</h2>
+    <form class="filters" method="get" action="/listings">
+      <div><label for="q">Search</label><input id="q" name="q" value="{{ query }}" placeholder="Name, game, set, description" /></div>
+      <div><label for="location">Game / Franchise</label><input id="location" name="location" value="{{ location }}" placeholder="Pokemon, Magic..." /></div>
+      <div><label for="min_price">Min Price</label><input id="min_price" name="min_price" type="number" min="0" value="{{ min_price if min_price is not none else '' }}" placeholder="0" /></div>
+      <div><label for="max_price">Max Price</label><input id="max_price" name="max_price" type="number" value="{{ max_price if max_price is not none else '' }}" /></div>
+      <div><label for="property_type">Rarity</label><input id="property_type" name="property_type" value="{{ property_type }}" placeholder="rare, legendary, promo" /></div>
+      <span class="visually-hidden">Any type</span>
+      <div>
+        <label for="furnished">Condition</label>
+        <select id="furnished" name="furnished">
+          <option value="">Any condition</option>
+          {% for value, label in [('near_mint','Near Mint'),('lightly_played','Lightly Played'),('moderately_played','Moderately Played'),('heavily_played','Heavily Played'),('damaged','Damaged')] %}
+          <option value="{{ value }}" {{ 'selected' if furnished == value else '' }}>{{ label }}</option>
+          {% endfor %}
+          <option value="furnished" {{ 'selected' if furnished == 'furnished' else '' }}>Legacy: Near Mint</option>
+          <option value="semi_furnished" {{ 'selected' if furnished == 'semi_furnished' else '' }}>Legacy: Lightly Played</option>
+          <option value="unfurnished" {{ 'selected' if furnished == 'unfurnished' else '' }}>Legacy: Played</option>
+        </select>
+        <span class="visually-hidden">Any furnishing</span>
+      </div>
+      <button class="btn btn-primary" type="submit">Apply Filters</button>
+      <a href="/listings" class="btn btn-outline">Reset</a>
+    </form>
+  </aside>
+
+  <main style="display: grid; gap: 1rem;">
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <section class="panel listings-summary">
+      <div class="section-head">
+        <div class="listings-summary-copy">
+          <h1>Card Listings</h1>
+          <div class="listings-summary-meta" aria-label="Listing summary">
+            <span class="summary-stat">{{ total }} cards available</span>
+            <span class="summary-stat">Page {{ page }} of {{ total_pages }}</span>
+            {% if query or location or min_price is not none or max_price is not none or property_type or furnished %}
+            <span class="summary-stat">Filtered results</span>
+            {% else %}
+            <span class="summary-stat">All games</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if request.session.get("user_role") in ["seller", "admin"] %}<a href="/listings/new" class="btn btn-primary">Sell Card</a>{% endif %}
+      </div>
+      {% if query or location or min_price is not none or max_price is not none or property_type or furnished %}
+      <div class="active-filters" aria-label="Active filters">
+        {% if query %}<span class="filter-chip">Search: {{ query }}</span>{% endif %}
+        {% if location %}<span class="filter-chip">Game: {{ location }}</span>{% endif %}
+        {% if min_price is not none %}<span class="filter-chip">From ${{ "{:,}".format(min_price) }}</span>{% endif %}
+        {% if max_price is not none %}<span class="filter-chip">Under ${{ "{:,}".format(max_price) }}</span>{% endif %}
+        {% if property_type %}<span class="filter-chip">Rarity: {{ property_type|replace('_',' ')|title }}</span>{% endif %}
+        {% if furnished %}<span class="filter-chip">Condition: {{ furnished|condition_label }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card-grid">
+      <form id="csrf-only-form" style="display: none;"><input type="hidden" name="csrf_token" value="{{ csrf_token }}" /></form>
+      {% for preselected_id in hidden_preselected_compare_ids %}
+      <input type="hidden" name="listing_ids" value="{{ preselected_id }}" />
+      {% endfor %}
+      {% for preselected_id in preselected_compare_ids %}
+      <input type="hidden" name="listing_ids" value="{{ preselected_id }}" />
+      {% endfor %}
+      {% for listing in listings %}
+      <article class="panel card-listing">
+        {% set card_no = card_numbers.get(listing.id) %}
+        <div class="card-media">
+          <img src="{{ listing.image_url or '/static/listing-placeholder.svg' }}" alt="{{ listing.title }}" loading="eager" decoding="async" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+        </div>
+        <div class="card-body">
+          <div class="chip-row">
+            {% if card_no %}<span class="id-chip">Card No. {{ card_no }}</span>{% endif %}
+            <span class="id-chip">Listing #{{ listing.id }}</span>
+          </div>
+          <div class="price-pill">${{ "{:,}".format(listing.price) }}</div>
+          <h2 style="font-size: 1.08rem; margin: 0;"><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h2>
+          <p class="subtle" style="margin: 0;">{{ listing.location }} · {{ listing.property_type|replace('_',' ')|title }} · {{ listing.furnished|condition_label }}</p>
+          <div class="meta-grid">
+            <div class="meta-box"><strong>{{ listing.size }}</strong><span>Stock</span></div>
+            <div class="meta-box"><strong>{{ listing.bedrooms }}</strong><span>Year</span></div>
+            <div class="meta-box"><strong>{{ listing.bathrooms }}/5</strong><span>Rarity</span></div>
+          </div>
+          <div class="card-actions">
+            <a href="/listings/{{ listing.id }}" class="btn btn-primary">Details</a>
+            {% if can_save_listings %}
+            <form method="post" action="/cart/add/{{ listing.id }}" data-cart-add="true">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <button type="submit" class="btn btn-outline" data-added-label="Added" data-default-label="Cart">Cart</button>
+            </form>
+            {% endif %}
+            {% if can_save_listings %}
+            {% set is_saved = listing.id in saved_listing_ids %}
+            <form method="post" action="/listings/{{ listing.id }}/{{ 'unsave' if is_saved else 'save' }}" data-save-toggle="true" data-listing-id="{{ listing.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+              <input type="hidden" name="next_path" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
+              <button type="submit" class="btn {{ 'btn-primary' if is_saved else 'btn-outline' }}">{{ 'Saved' if is_saved else 'Save' }}</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% else %}
+      <div class="panel empty-state"><h2>No cards found</h2><p class="subtle">Try a broader search or reset your filters.</p></div>
+      {% endfor %}
+    </section>
+
+    {% if total_pages > 1 %}
+    <nav class="pagination-wrap" aria-label="Card listing pagination">
+      <span class="pagination-summary">Showing page {{ page }} of {{ total_pages }}</span>
+      <div class="pagination-controls">
+        {% if page > 1 %}
+        <a class="page-link" href="/listings?page={{ page - 1 }}&q={{ query }}&location={{ location }}&min_price={{ min_price or '' }}&max_price={{ max_price or '' }}&property_type={{ property_type or '' }}&furnished={{ furnished or '' }}" aria-label="Previous page">Previous</a>
+        {% else %}
+        <span class="page-disabled" aria-disabled="true">Previous</span>
+        {% endif %}
+        {% for page_number in range(1, total_pages + 1) %}
+          {% if page_number == page %}
+          <span class="page-current" aria-current="page">{{ page_number }}</span>
+          {% else %}
+          <a class="page-link" href="/listings?page={{ page_number }}&q={{ query }}&location={{ location }}&min_price={{ min_price or '' }}&max_price={{ max_price or '' }}&property_type={{ property_type or '' }}&furnished={{ furnished or '' }}" aria-label="Page {{ page_number }}">{{ page_number }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+        <a class="page-link" href="/listings?page={{ page + 1 }}&q={{ query }}&location={{ location }}&min_price={{ min_price or '' }}&max_price={{ max_price or '' }}&property_type={{ property_type or '' }}&furnished={{ furnished or '' }}" aria-label="Next page">Next</a>
+        {% else %}
+        <span class="page-disabled" aria-disabled="true">Next</span>
+        {% endif %}
+      </div>
+    </nav>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}

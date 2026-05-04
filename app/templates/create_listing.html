@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Sell Card - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .create-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1rem; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; box-shadow: var(--shadow-sm); }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .field { display: grid; gap: 0.3rem; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 0.76rem; text-transform: uppercase; font-weight: 800; color: var(--text-muted); }
+  .field input, .field select, .field textarea { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 10px; padding: 0.55rem; background: var(--bg); color: var(--text); }
+  .form-help { margin: 0; color: var(--text-muted); font-size: 0.82rem; }
+  .image-preview-box { display: none; margin-top: 0.7rem; padding: 0.75rem; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--bg); }
+  .image-preview-box img { width: min(220px, 100%); aspect-ratio: 3 / 4; object-fit: contain; border-radius: 10px; background: #f8fafc; display: block; }
+  .preset-list { display: grid; gap: 0.6rem; }
+  .preset-card { width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 12px; padding: 0.75rem; background: var(--bg); color: var(--text); cursor: pointer; }
+  .preset-card strong { display: block; }
+  .submit-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+  @media (max-width: 900px) { .create-grid, .field-grid { grid-template-columns: 1fr; } .field.full { grid-column: auto; } }
+</style>
+<div class="create-grid">
+  <main class="panel">
+    <h1 style="margin-top: 0;">Create Card Listing</h1>
+    <p class="subtle">Use the presets, paste a card image URL, or upload your own image. This keeps seller demos fast and reliable.</p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="post" enctype="multipart/form-data" class="field-grid" id="listing-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+      <div class="field full">
+        <label for="title">Card Name</label>
+        <input id="title" name="title" required list="card-name-options" placeholder="Charizard ex - Obsidian Flames 228/197" />
+        <datalist id="card-name-options">
+          <option value="Charizard ex - Obsidian Flames 228/197"></option>
+          <option value="Blue-Eyes White Dragon SDK-001"></option>
+          <option value="Monkey.D.Luffy OP01-003"></option>
+          <option value="Pikachu GG30/GG70"></option>
+        </datalist>
+      </div>
+
+      <div class="field">
+        <label for="price">Price</label>
+        <input id="price" name="price" type="number" min="1" required placeholder="45" />
+        <p class="form-help">Whole-dollar demo price.</p>
+      </div>
+      <div class="field">
+        <label for="location">Game / Franchise</label>
+        <input id="location" name="location" required list="game-options" placeholder="Pokemon" />
+        <datalist id="game-options">
+          <option value="Pokemon"></option>
+          <option value="Yu-Gi-Oh!"></option>
+          <option value="Magic: The Gathering"></option>
+          <option value="One Piece Card Game"></option>
+          <option value="Lorcana"></option>
+          <option value="Digimon Card Game"></option>
+        </datalist>
+      </div>
+      <div class="field"><label for="size">Stock Quantity</label><input id="size" name="size" type="number" min="1" required placeholder="1" /></div>
+      <div class="field"><label for="bedrooms">Release Year</label><input id="bedrooms" name="bedrooms" type="number" min="1990" max="2100" required placeholder="2023" /></div>
+      <div class="field"><label for="bathrooms">Rarity Score</label><input id="bathrooms" name="bathrooms" type="number" min="1" max="5" required placeholder="4" /></div>
+      <div class="field">
+        <label for="property_type">Rarity</label>
+        <input id="property_type" name="property_type" required list="rarity-options" placeholder="ultra_rare" />
+        <datalist id="rarity-options">
+          <option value="common"></option>
+          <option value="rare"></option>
+          <option value="super_rare"></option>
+          <option value="ultra_rare"></option>
+          <option value="secret_rare"></option>
+          <option value="legendary"></option>
+          <option value="promo"></option>
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="furnished">Condition</label>
+        <select id="furnished" name="furnished" required>
+          <option value="">Select condition</option>
+          <option value="near_mint">Near Mint</option>
+          <option value="lightly_played">Lightly Played</option>
+          <option value="moderately_played">Moderately Played</option>
+          <option value="heavily_played">Heavily Played</option>
+          <option value="damaged">Damaged</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" minlength="30" maxlength="2000" rows="5" required placeholder="Include set name, edition, language, visible wear, and seller notes."></textarea>
+      </div>
+
+      <div class="field full">
+        <label for="image-url">Card Image URL</label>
+        <input id="image-url" name="image_url" type="url" placeholder="https://images.pokemontcg.io/sv3/228_hires.png" />
+        <p class="form-help">Fastest demo option. Upload below only if you have a local image file.</p>
+      </div>
+
+      <div class="field full">
+        <label for="listing-image">Upload Card Image</label>
+        <input id="listing-image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" />
+        <div id="image-preview-container" class="image-preview-box" aria-live="polite">
+          <img id="image-preview" src="" alt="Selected card image preview" />
+        </div>
+      </div>
+
+      <div class="field full submit-row">
+        <button class="btn btn-primary" type="submit">Create Listing</button>
+        <a class="btn btn-outline" href="/listings">Cancel</a>
+      </div>
+    </form>
+  </main>
+
+  <aside class="panel">
+    <h2 style="margin-top: 0;">Quick Fill</h2>
+    <p class="subtle">Click a sample, adjust price/stock, then create the listing.</p>
+    <div class="preset-list">
+      <button class="preset-card" type="button" data-title="Charizard ex - Obsidian Flames 228/197" data-price="75" data-location="Pokemon" data-size="1" data-year="2023" data-score="5" data-rarity="hyper_rare" data-condition="near_mint" data-image="https://images.pokemontcg.io/sv3/228_hires.png" data-description="Real Pokemon TCG sample listing for Charizard ex 228/197 from Obsidian Flames. Near Mint demo card with clean front image and clear seller notes."><strong>Pokemon</strong><span class="subtle">Charizard ex preset</span></button>
+      <button class="preset-card" type="button" data-title="Blue-Eyes White Dragon SDK-001" data-price="42" data-location="Yu-Gi-Oh!" data-size="2" data-year="2002" data-score="4" data-rarity="ultra_rare" data-condition="lightly_played" data-image="https://images.ygoprodeck.com/images/cards/89631139.jpg" data-description="Real Yu-Gi-Oh sample listing for Blue-Eyes White Dragon SDK-001. Lightly Played demo card with classic artwork and visible seller condition notes."><strong>Yu-Gi-Oh!</strong><span class="subtle">Blue-Eyes preset</span></button>
+      <button class="preset-card" type="button" data-title="Monkey.D.Luffy OP01-003" data-price="18" data-location="One Piece Card Game" data-size="3" data-year="2022" data-score="3" data-rarity="leader" data-condition="near_mint" data-image="https://devilfruittcg.gg/api/card-image?id=OP01-003" data-description="Real One Piece Card Game sample listing for Monkey.D.Luffy OP01-003 from Romance Dawn. Near Mint leader card ready for demo checkout."><strong>One Piece</strong><span class="subtle">Luffy preset</span></button>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:1rem 0;" />
+    <p class="subtle">Mention set, collector number, language, foil status, visible wear, and whether the photo shows the exact card.</p>
+  </aside>
+</div>
+
+<script>
+  document.querySelectorAll(".preset-card").forEach((button) => {
+    button.addEventListener("click", () => {
+      const map = {
+        title: "title",
+        price: "price",
+        location: "location",
+        size: "size",
+        year: "bedrooms",
+        score: "bathrooms",
+        rarity: "property_type",
+        condition: "furnished",
+        image: "image-url",
+        description: "description",
+      };
+      Object.entries(map).forEach(([key, id]) => {
+        const field = document.getElementById(id);
+        if (field && button.dataset[key]) field.value = button.dataset[key];
+      });
+    });
+  });
+</script>
+{% endblock %}

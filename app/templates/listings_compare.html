@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}Compare Listings - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .compare-shell {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .compare-toolbar {
+    padding: 1rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-head h1 {
+    margin: 0;
+    font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  }
+
+  .toolbar-head p {
+    margin: 0.35rem 0 0 0;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .listing-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.85rem;
+  }
+
+  .listing-column {
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .listing-media {
+    aspect-ratio: 16 / 10;
+    background: #e2e8f0;
+  }
+
+  .listing-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .listing-body {
+    padding: 0.95rem;
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .listing-title {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .listing-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .listing-title a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 2px;
+  }
+
+  .listing-price {
+    font-size: 1.2rem;
+    font-weight: 900;
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.26rem 0.55rem;
+  }
+
+  .badge-win {
+    background: #ecfdf3;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  .wins-help {
+    margin: 0.15rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .matrix-panel {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .matrix-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .matrix-table th {
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    padding: 0.7rem 0.75rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .matrix-table td {
+    border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    padding: 0.7rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .matrix-label {
+    background: var(--bg);
+    font-size: 0.82rem;
+    font-weight: 700;
+    width: 180px;
+  }
+
+  .matrix-cell.is-winner {
+    background: #f0fdf4;
+    color: #166534;
+    font-weight: 800;
+  }
+
+  .matrix-cell.long-text {
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 700px) {
+    .compare-toolbar {
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<div class="compare-shell">
+  <section class="panel compare-toolbar" data-reveal>
+    <div class="toolbar-head">
+      <h1>Compare Listings</h1>
+      <p>Side-by-side comparison for {{ compare.items|length }} selected cards.</p>
+      <span class="sr-only">Side-by-side comparison for {{ compare.items|length }} selected properties.</span>
+      <p class="wins-help">Green highlights indicate the current top value for each metric.</p>
+    </div>
+    <div class="toolbar-actions">
+      <a href="/listings/decision-lab?ids={% for item in compare.items %}{{ item.listing.id }}{% if not loop.last %},{% endif %}{% endfor %}" class="btn btn-primary">Open Decision Lab</a>
+      <a href="/listings" class="btn btn-outline">Back to Listings</a>
+      <a href="/listings/new" class="btn btn-outline">Create Listing</a>
+    </div>
+  </section>
+
+  <section class="listing-columns" data-stagger>
+    {% for item in compare.items %}
+    {% set listing = item.listing %}
+    {% set is_cheapest = listing.id == compare.cheapest_listing_id %}
+    {% set is_largest = listing.id == compare.largest_listing_id %}
+    {% set is_best_value = listing.id == compare.best_value_listing_id %}
+    <article class="panel listing-column" data-reveal>
+      <div class="listing-media">
+        {% if listing.image_url %}
+        <img src="{{ listing.image_url }}" alt="{{ listing.title }}" onerror="this.onerror=null;this.src='/static/listing-placeholder.svg';" />
+        {% else %}
+        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+          <svg width="44" height="44" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        </div>
+        {% endif %}
+      </div>
+      <div class="listing-body">
+        <div>
+          <h2 class="listing-title"><a href="/listings/{{ listing.id }}">{{ listing.title }}</a></h2>
+          <div class="subtle" style="margin-top: 0.28rem;">{{ listing.location }}</div>
+        </div>
+        <div class="listing-price">${{ "{:,}".format(listing.price) }}</div>
+        <div class="badges">
+          {% if is_cheapest %}<span class="badge badge-win">Cheapest</span>{% endif %}
+          {% if is_largest %}<span class="badge badge-win">Most Stock</span>{% endif %}
+          {% if is_best_value %}<span class="badge badge-win">Best Value</span>{% endif %}
+          <span class="badge">{{ listing.property_type|replace('_', ' ')|title }}</span>
+          <span class="badge">{{ listing.furnished|condition_label }}</span>
+        </div>
+        <div style="display: grid; gap: 0.45rem;">
+          <a href="/listings/{{ listing.id }}" class="btn btn-primary" style="width: 100%;">View Details</a>
+          {% if can_save_listings %}
+          {% set is_saved = listing.id in saved_listing_ids %}
+          <form method="post" action="/listings/{{ listing.id }}/{{ 'unsave' if is_saved else 'save' }}" style="margin: 0;" data-save-toggle="true" data-listing-id="{{ listing.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="next_path" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
+            <button type="submit" class="btn {{ 'btn-primary' if is_saved else 'btn-outline' }}" style="width: 100%;" aria-label="{{ 'Unsave listing' if is_saved else 'Save listing' }}" data-saved-label="Saved" data-unsaved-label="Save Listing">
+              {{ 'Saved' if is_saved else 'Save Listing' }}
+            </button>
+          </form>
+          {% else %}
+          <a href="/login" class="btn btn-outline" style="width: 100%;">Save Listing</a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="panel matrix-panel" data-reveal>
+    <table class="matrix-table" aria-describedby="compare-matrix-help">
+      <caption id="compare-matrix-help" class="sr-only">Compare selected listings across pricing, stock, release year, rarity score, and attributes.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Metric</th>
+          {% for item in compare.items %}
+          <th scope="col">#{{ item.listing.id }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="matrix-label">Price</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell {% if item.listing.id == compare.cheapest_listing_id %}is-winner{% endif %}">${{ "{:,}".format(item.listing.price) }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Price / Stock</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell {% if item.listing.id == compare.best_value_listing_id %}is-winner{% endif %}">${{ "{:,.2f}".format(item.price_per_size) }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Stock</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell {% if item.listing.id == compare.largest_listing_id %}is-winner{% endif %}">{{ item.listing.size }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Release Year</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell">{{ item.listing.bedrooms }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Rarity Score</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell">{{ item.listing.bathrooms }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Rarity</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell">{{ item.listing.property_type|replace('_', ' ')|title }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Condition</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell">{{ item.listing.furnished|condition_label }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Game</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell">{{ item.listing.location }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th scope="row" class="matrix-label">Description</th>
+          {% for item in compare.items %}
+          <td class="matrix-cell long-text">{{ item.listing.description }}</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

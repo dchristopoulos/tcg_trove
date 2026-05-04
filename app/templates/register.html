@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Register - TCG Trove{% endblock %}
+
+{% block content %}
+<style>
+  .auth-page {
+    min-height: calc(100vh - 180px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  .auth-panel {
+    width: 100%;
+    max-width: 500px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #dbe3ef;
+    border-radius: 1rem;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    padding: 2rem;
+  }
+  [data-theme="dark"] .auth-panel {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow: 0 20px 40px rgba(2, 6, 23, 0.55);
+  }
+  .auth-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary, #0f172a);
+  }
+  .auth-header p {
+    margin: 0.5rem 0 0;
+    font-size: 0.95rem;
+    color: var(--text-muted, #475569);
+  }
+  [data-theme="dark"] .auth-header h1 {
+    color: #e2e8f0;
+  }
+  [data-theme="dark"] .auth-header p {
+    color: #94a3b8;
+  }
+  .alert-error {
+    margin-top: 1.25rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.9rem;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+  [data-theme="dark"] .alert-error {
+    background: rgba(153, 27, 27, 0.25);
+    border-color: rgba(248, 113, 113, 0.35);
+    color: #fecaca;
+  }
+  .auth-form {
+    margin-top: 0.5rem;
+  }
+  .form-section {
+    margin-top: 1rem;
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 0.8rem;
+    padding: 0.9rem;
+    background: rgba(255, 255, 255, 0.55);
+  }
+  [data-theme="dark"] .form-section {
+    background: rgba(15, 23, 42, 0.35);
+  }
+  .section-title {
+    margin: 0 0 0.7rem;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #64748b);
+    font-weight: 700;
+  }
+  .field {
+    margin-top: 1rem;
+  }
+  .field:first-child {
+    margin-top: 0;
+  }
+  .field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    margin-bottom: 0.4rem;
+  }
+  .field input {
+    width: 100%;
+    border: 1px solid var(--line, #cbd5e1);
+    border-radius: 0.7rem;
+    padding: 0.78rem 0.9rem;
+    background: var(--bg, #ffffff);
+    color: var(--text-primary, #0f172a);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field input:focus {
+    outline: none;
+    border-color: var(--brand, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  }
+  .field-help {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted, #64748b);
+    line-height: 1.4;
+  }
+  .btn-primary {
+    width: 100%;
+    margin-top: 1.25rem;
+    border-radius: 0.7rem;
+    padding: 0.82rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+    border: 1px solid transparent;
+    background: var(--brand, #2563eb);
+    color: #ffffff;
+  }
+  .btn-primary:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 16px rgba(37, 99, 235, 0.22);
+  }
+  .btn-primary[disabled],
+  .btn-primary.is-loading {
+    opacity: 0.72;
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+  }
+  .auth-links {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line, #e2e8f0);
+  }
+  .auth-links p {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--text-muted, #64748b);
+  }
+  .auth-links a {
+    color: var(--brand, #2563eb);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .auth-links a:hover {
+    text-decoration: underline;
+  }
+  #password-strength {
+    font-weight: 500;
+  }
+</style>
+
+<section class="auth-page">
+  <div class="auth-panel" data-reveal>
+    <div class="auth-header">
+      <h1>Create Account</h1>
+      <p>Set up your profile to save listings, alerts, and search preferences.</p>
+    </div>
+
+    {% if error %}
+    <div class="alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/users/register" class="auth-form" data-submit-state>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+      <div class="form-section">
+        <p class="section-title">Account Identity</p>
+        <div class="field">
+          <label for="register-email">Email Address</label>
+          <input
+            id="register-email"
+            type="email"
+            name="email"
+            autocomplete="email"
+            placeholder="name@example.com"
+            aria-describedby="register-email-help"
+            required
+          />
+          <p id="register-email-help" class="field-help">We use this for account verification and security notifications.</p>
+        </div>
+
+        <div class="field">
+          <label for="register-username">Username</label>
+          <input
+            id="register-username"
+            type="text"
+            name="username"
+            autocomplete="username"
+            placeholder="Choose a unique username"
+            aria-describedby="register-username-help"
+            required
+          />
+          <p id="register-username-help" class="field-help">Pick a public name that is easy to recognize.</p>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <p class="section-title">Security</p>
+        <div class="field">
+          <label for="register-password">Password</label>
+          <input
+            id="register-password"
+            type="password"
+            name="password"
+            minlength="8"
+            autocomplete="new-password"
+            placeholder="••••••••"
+            aria-describedby="password-strength"
+            required
+          />
+          <p id="password-strength" class="field-help">
+            Use at least 8 chars with upper/lower letters, a number, and a symbol.
+          </p>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" data-loading-text="Creating Account...">Create Account</button>
+    </form>
+
+    <div class="auth-links">
+      <p>Already have an account? <a href="/login">Sign in</a></p>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll('form[data-submit-state]').forEach((form) => {
+    form.addEventListener('submit', () => {
+      const button = form.querySelector('button[type="submit"]');
+      if (!button || button.disabled) {
+        return;
+      }
+      button.dataset.originalText = button.textContent;
+      button.textContent = button.dataset.loadingText || 'Working...';
+      button.disabled = true;
+      button.classList.add('is-loading');
+    });
+  });
+</script>
+{% endblock %}

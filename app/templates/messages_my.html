@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .mm-shell {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .mm-tabs {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .mm-tab {
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: var(--bg);
+  }
+
+  .mm-tab.is-active {
+    color: #ffffff;
+    background: #0a4ecb;
+    border-color: #0a4ecb;
+  }
+
+  .mm-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: 0.95rem;
+    align-items: start;
+  }
+
+  .mm-rail,
+  .mm-detail {
+    border: 1px solid var(--line);
+    border-radius: 0.95rem;
+    background: var(--surface);
+    min-height: 360px;
+  }
+
+  .mm-rail {
+    overflow: hidden;
+  }
+
+  .mm-controls {
+    position: sticky;
+    top: 5.25rem;
+    z-index: 2;
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .mm-controls-grid {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: minmax(0, 1fr) 160px 120px auto;
+    align-items: center;
+  }
+
+  .mm-controls input,
+  .mm-controls select {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 0.62rem;
+    background: var(--bg);
+    padding: 0.5rem 0.6rem;
+  }
+
+  .mm-controls .btn {
+    white-space: nowrap;
+  }
+
+  .mm-list {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.45rem;
+    max-height: min(68vh, 820px);
+    overflow: auto;
+  }
+
+  .mm-item {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    background: transparent;
+    text-align: left;
+    padding: 0.7rem;
+    display: grid;
+    gap: 0.38rem;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+  }
+
+  .mm-item:hover {
+    border-color: color-mix(in srgb, var(--brand) 30%, var(--line));
+    background: color-mix(in srgb, var(--brand) 8%, var(--surface));
+    transform: translateY(-1px);
+  }
+
+  .mm-item.is-active {
+    border-color: color-mix(in srgb, var(--brand) 46%, var(--line));
+    background: color-mix(in srgb, var(--brand) 11%, var(--surface));
+  }
+
+  .mm-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+  }
+
+  .mm-item-title {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .mm-item-sub,
+  .mm-item-meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+  }
+
+  .mm-item-message {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.83rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .mm-status-chip {
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .mm-status-open {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .mm-status-in_progress {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  .mm-status-responded,
+  .mm-status-closed {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .mm-detail {
+    padding: 1rem;
+    display: grid;
+  }
+
+  .mm-conversation {
+    display: none;
+    gap: 0.85rem;
+    align-content: start;
+  }
+
+  .mm-conversation.is-active {
+    display: grid;
+  }
+
+  .mm-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .mm-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .mm-avatar {
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    background: #dbeafe;
+    color: #1e3a8a;
+    flex: 0 0 auto;
+  }
+
+  .mm-message {
+    margin: 0;
+    padding: 0.78rem 0.82rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--surface) 84%, var(--bg));
+  }
+
+  .mm-meta {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+  }
+
+  .mm-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mm-thread {
+    display: grid;
+    gap: 0.45rem;
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    padding: 0.65rem;
+    background: color-mix(in srgb, var(--surface) 90%, var(--bg));
+    max-height: 220px;
+    overflow: auto;
+  }
+
+  .mm-bubble {
+    border-radius: 0.62rem;
+    border: 1px solid var(--line);
+    padding: 0.45rem 0.55rem;
+    background: var(--bg);
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .mm-bubble.mine {
+    border-color: color-mix(in srgb, var(--brand) 42%, var(--line));
+    background: color-mix(in srgb, var(--brand) 10%, var(--surface));
+  }
+
+  .mm-bubble-meta {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+  }
+
+  .mm-reply-form {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .mm-reply-form textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 0.62rem;
+    background: var(--bg);
+    padding: 0.55rem 0.62rem;
+    resize: vertical;
+    min-height: 72px;
+  }
+
+  .mm-actions .btn {
+    text-decoration: none;
+  }
+
+  .mm-status-grid {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .mm-status-banner {
+    border-radius: 0.7rem;
+    border: 1px solid transparent;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .mm-status-info {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+  }
+
+  .mm-status-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+  }
+
+  .mm-empty,
+  .mm-filter-empty,
+  .mm-empty-detail {
+    border: 1px dashed var(--line);
+    border-radius: 0.85rem;
+    padding: 1rem;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+  }
+
+  .mm-filter-empty,
+  .mm-empty-detail {
+    display: none;
+  }
+
+  .mm-empty p,
+  .mm-filter-empty p,
+  .mm-empty-detail p {
+    margin: 0.35rem 0 0;
+  }
+
+  .mm-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.7rem 0.8rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .mm-pagination-controls {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .mm-kicker {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .mm-loading .mm-item {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 980px) {
+    .mm-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .mm-controls {
+      position: static;
+    }
+
+    .mm-list {
+      max-height: none;
+    }
+
+    .mm-controls-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="mm-shell" data-mm-root>
+  <section class="hero-shell" data-reveal>
+    <div class="hero-copy">
+      <h1>Messages</h1>
+      <p>Track each inquiry in one place with quick listing and profile access.</p>
+    </div>
+  </section>
+
+  <section data-reveal>
+    <div class="mm-tabs" aria-label="Message views">
+      <a href="/messages/my" class="mm-tab is-active" aria-current="page">My Messages</a>
+      {% if can_view_inbox %}
+      <a href="/messages/inbox" class="mm-tab">Seller Inbox</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="mm-status-grid" role="status" aria-live="polite">
+    {% if message %}
+    <p class="mm-status-banner mm-status-info">{{ message }}</p>
+    {% endif %}
+    {% if error %}
+    <p class="mm-status-banner mm-status-error">{{ error }}</p>
+    {% endif %}
+  </div>
+
+  {% if rows %}
+  <section class="mm-layout mm-loading" data-reveal>
+    <aside class="mm-rail" aria-label="Conversation list">
+      <div class="mm-controls">
+        <form method="get" action="/messages/my" class="mm-controls-grid">
+          <input id="mm-search" name="search" type="search" value="{{ active_search }}" placeholder="Search listing, seller, message" aria-label="Search messages" />
+          <select id="mm-status-filter" name="status" aria-label="Filter messages by status">
+            <option value="all" {{ "selected" if active_status == "all" else "" }}>All statuses</option>
+            <option value="open" {{ "selected" if active_status == "open" else "" }}>Open</option>
+            <option value="in_progress" {{ "selected" if active_status == "in_progress" else "" }}>In progress</option>
+            <option value="responded" {{ "selected" if active_status == "responded" else "" }}>Responded</option>
+            <option value="closed" {{ "selected" if active_status == "closed" else "" }}>Closed</option>
+          </select>
+          <select id="mm-page-size" name="page_size" aria-label="Messages per page">
+            <option value="10" {{ "selected" if page_size == 10 else "" }}>10 / page</option>
+            <option value="20" {{ "selected" if page_size == 20 else "" }}>20 / page</option>
+            <option value="50" {{ "selected" if page_size == 50 else "" }}>50 / page</option>
+          </select>
+          <input type="hidden" name="page" value="1" />
+          <button type="submit" class="btn btn-outline">Apply</button>
+        </form>
+      </div>
+
+      <div class="mm-list" id="mm-list" role="listbox" aria-label="Conversations" tabindex="0">
+        {% for row in rows %}
+        {% set inquiry = row.inquiry %}
+        {% set listing = row.listing %}
+        {% set seller = row.seller %}
+        {% set seller_name = seller.username if seller else 'Unknown' %}
+        {% set detail_id = 'my-conversation-' ~ loop.index %}
+        <button
+          type="button"
+          class="mm-item {{ 'is-active' if loop.first else '' }}"
+          role="option"
+          aria-selected="{{ 'true' if loop.first else 'false' }}"
+          data-mm-item
+          data-target="{{ detail_id }}"
+          data-status="{{ inquiry.status|lower }}"
+          data-search="{{ (listing.title if listing else 'Listing unavailable')|lower }} {{ seller_name|lower }} {{ inquiry.message|lower }}"
+        >
+          <div class="mm-item-top">
+            <h3 class="mm-item-title">{{ listing.title if listing else 'Listing unavailable' }}</h3>
+            <span class="mm-status-chip mm-status-{{ inquiry.status|lower }}">{{ inquiry.status|replace('_', ' ')|title }}</span>
+          </div>
+          <p class="mm-item-sub">Seller: {{ seller_name }}</p>
+          <p class="mm-item-message">{{ inquiry.message }}</p>
+          <p class="mm-item-meta">{{ inquiry.created_at.strftime("%Y-%m-%d %H:%M") if inquiry.created_at else "" }}</p>
+        </button>
+        {% endfor %}
+      </div>
+      <div class="mm-filter-empty" id="mm-filter-empty" aria-live="polite">
+        <p class="mm-kicker">No matches</p>
+        <p class="subtle">Try a different keyword or reset the status filter.</p>
+      </div>
+      <div class="mm-pagination" aria-label="Messages pagination">
+        <span class="subtle">Page {{ page }} of {{ total_pages }} · {{ total_count }} total</span>
+        <div class="mm-pagination-controls">
+          {% if has_prev %}
+          <a class="btn btn-outline btn-sm" href="/messages/my?page={{ page - 1 }}&status={{ active_status|urlencode }}&search={{ active_search|urlencode }}&page_size={{ page_size }}">Previous</a>
+          {% endif %}
+          {% if has_next %}
+          <a class="btn btn-outline btn-sm" href="/messages/my?page={{ page + 1 }}&status={{ active_status|urlencode }}&search={{ active_search|urlencode }}&page_size={{ page_size }}">Next</a>
+          {% endif %}
+        </div>
+      </div>
+    </aside>
+
+    <section class="mm-detail" aria-label="Conversation details">
+      {% for row in rows %}
+      {% set inquiry = row.inquiry %}
+      {% set listing = row.listing %}
+      {% set seller = row.seller %}
+      {% set seller_name = seller.username if seller else 'Unknown' %}
+      {% set detail_id = 'my-conversation-' ~ loop.index %}
+      <article class="mm-conversation {{ 'is-active' if loop.first else '' }}" id="{{ detail_id }}" data-mm-detail data-inquiry-id="{{ inquiry.id }}">
+        <div class="mm-head">
+          <div class="mm-identity">
+            <span class="mm-avatar">{{ seller_name[:1]|upper }}</span>
+            <div>
+              <h2 style="margin: 0;">
+                {% if listing %}
+                <a href="/listings/{{ listing.id }}">{{ listing.title }}</a>
+                {% else %}
+                Listing unavailable
+                {% endif %}
+              </h2>
+              <p class="subtle" style="margin: 0.2rem 0 0 0;">Seller: {{ seller_name }}</p>
+            </div>
+          </div>
+          <span class="mm-status-chip mm-status-{{ inquiry.status|lower }}">{{ inquiry.status|replace('_', ' ')|title }}</span>
+        </div>
+
+        <p class="mm-message">{{ inquiry.message }}</p>
+
+        <div class="mm-meta">
+          {% if listing %}<span>{{ listing.location }}</span>{% endif %}
+          <span>{{ inquiry.created_at.strftime("%Y-%m-%d %H:%M") if inquiry.created_at else "" }}</span>
+        </div>
+
+        <div class="mm-actions">
+          {% if listing %}
+          <a href="/listings/{{ listing.id }}" class="btn btn-primary">Open Listing</a>
+          {% endif %}
+          {% if seller %}
+          <a href="/messages/contacts/{{ seller.id }}" class="btn btn-outline">View Seller Profile</a>
+          {% endif %}
+        </div>
+
+        <div class="mm-thread" data-thread-list>
+          {% for item in threads_by_inquiry.get(inquiry.id, []) %}
+          <article class="mm-bubble {{ 'mine' if item.sender_id == user.id else '' }}" data-thread-item-id="{{ item.id }}">
+            <strong>{{ item.sender_username or ("You" if item.sender_id == user.id else "Participant") }}</strong>
+            <p style="margin: 0;">{{ item.body }}</p>
+            <span class="mm-bubble-meta">{{ item.created_at.replace('T', ' ') if item.created_at else "" }}</span>
+          </article>
+          {% endfor %}
+        </div>
+
+        <form method="post" action="/messages/{{ inquiry.id }}/reply" class="mm-reply-form" data-submit-state>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="next_path" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}" />
+          <textarea name="body" required minlength="2" maxlength="2000" placeholder="Write a reply to the seller..."></textarea>
+          <div>
+            <button type="submit" class="btn btn-outline">Send Reply</button>
+          </div>
+        </form>
+      </article>
+      {% endfor %}
+      <div class="mm-empty-detail" id="mm-empty-detail" aria-live="polite">
+        <p class="mm-kicker">Conversation hidden</p>
+        <p class="subtle">No visible conversation is selected right now.</p>
+      </div>
+    </section>
+  </section>
+  {% else %}
+  <div class="mm-empty" data-reveal>
+    <h2 style="margin: 0;">No messages yet</h2>
+    <p class="subtle">Start a conversation from any listing and it will appear here.</p>
+    <a href="/listings" class="btn btn-primary" style="margin-top: 0.7rem;">Browse Listings</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  (() => {
+    const root = document.querySelector('[data-mm-root]');
+    if (!root) {
+      return;
+    }
+
+    const list = document.getElementById('mm-list');
+    const items = Array.from(document.querySelectorAll('[data-mm-item]'));
+    const details = Array.from(document.querySelectorAll('[data-mm-detail]'));
+    const emptyDetail = document.getElementById('mm-empty-detail');
+
+    const setActive = (targetId) => {
+      let activeVisible = false;
+      items.forEach((item) => {
+        const active = !item.hidden && item.dataset.target === targetId;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+        if (active) {
+          activeVisible = true;
+        }
+      });
+
+      details.forEach((detail) => {
+        const active = detail.id === targetId && activeVisible;
+        detail.classList.toggle('is-active', active);
+      });
+
+      if (emptyDetail) {
+        emptyDetail.style.display = activeVisible ? 'none' : 'block';
+      }
+    };
+
+    const visibleItems = () => items.filter((item) => !item.hidden);
+
+    items.forEach((item) => {
+      item.addEventListener('click', () => setActive(item.dataset.target || ''));
+    });
+
+    list?.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+        return;
+      }
+      const visible = visibleItems();
+      if (!visible.length) {
+        return;
+      }
+
+      const currentIndex = visible.findIndex((item) => item.classList.contains('is-active'));
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = currentIndex < 0 ? 0 : Math.max(0, Math.min(visible.length - 1, currentIndex + delta));
+      const next = visible[nextIndex];
+      if (next) {
+        next.focus();
+        setActive(next.dataset.target || '');
+        event.preventDefault();
+      }
+    });
+
+    const first = visibleItems()[0];
+    if (first) {
+      setActive(first.dataset.target || '');
+    }
+    document.querySelectorAll('form[data-submit-state]').forEach((form) => {
+      form.addEventListener('submit', () => {
+        const button = form.querySelector('button[type="submit"]');
+        if (!button || button.disabled) {
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Sending...';
+      });
+    });
+
+    const poll = async () => {
+      const active = document.querySelector('[data-mm-detail].is-active');
+      if (!active) {
+        return;
+      }
+      const inquiryId = active.getAttribute('data-inquiry-id');
+      const listEl = active.querySelector('[data-thread-list]');
+      if (!inquiryId || !listEl) {
+        return;
+      }
+      const lastItem = listEl.querySelector('[data-thread-item-id]:last-child');
+      const afterId = lastItem ? Number(lastItem.getAttribute('data-thread-item-id')) || 0 : 0;
+      try {
+        const response = await fetch(`/messages/${inquiryId}/events?after_id=${afterId}`, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+        });
+        if (!response.ok) {
+          return;
+        }
+        const payload = await response.json();
+        if (!Array.isArray(payload.items) || !payload.items.length) {
+          return;
+        }
+        payload.items.forEach((item) => {
+          const bubble = document.createElement('article');
+          bubble.className = `mm-bubble${item.sender_id === {{ user.id }} ? ' mine' : ''}`;
+          bubble.setAttribute('data-thread-item-id', String(item.id));
+          bubble.innerHTML = `<strong>${item.sender_username || 'Participant'}</strong><p style="margin: 0;"></p><span class="mm-bubble-meta">${(item.created_at || '').replace('T', ' ')}</span>`;
+          bubble.querySelector('p').textContent = item.body || '';
+          listEl.appendChild(bubble);
+        });
+        listEl.scrollTop = listEl.scrollHeight;
+      } catch (_err) {
+        return;
+      }
+    };
+
+    window.setInterval(poll, 7000);
+
+    requestAnimationFrame(() => {
+      document.querySelector('.mm-layout')?.classList.remove('mm-loading');
+    });
+  })();
+</script>
+{% endblock %}

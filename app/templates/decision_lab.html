@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Decision Lab - TCG Trove{% endblock %}
+{% block content %}
+<style>
+  .lab-shell { display: grid; gap: 1rem; }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 1rem;
+  }
+  .lab-hero {
+    background: linear-gradient(135deg, #0f2a4d 0%, #155ecf 55%, #1d79ff 100%);
+    color: #f8fbff;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .lab-hero h1 { margin: 0; font-size: clamp(1.5rem, 3vw, 2.1rem); color: #fff; }
+  .lab-hero p { margin: 0.5rem 0 0 0; color: rgba(248, 251, 255, 0.92); }
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.65rem;
+  }
+  .field label {
+    display: block;
+    margin-bottom: 0.28rem;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+  .field input { width: 100%; }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.6rem;
+  }
+  .summary-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+    padding: 0.7rem;
+  }
+  .summary-card span {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+  .summary-card strong {
+    display: block;
+    margin-top: 0.22rem;
+    font-size: 1.15rem;
+  }
+  .winner-card {
+    border: 1px solid #86efac;
+    background: #f0fdf4;
+    border-radius: 12px;
+    padding: 0.85rem;
+  }
+  .winner-card h2 { margin: 0; font-size: 1.1rem; color: #14532d; }
+  .winner-card p { margin: 0.4rem 0 0; color: #166534; }
+  .rows-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.7rem;
+  }
+  .row-card {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+    padding: 0.75rem;
+  }
+  .row-card h3 { margin: 0; font-size: 0.96rem; }
+  .row-card .score { font-size: 1.3rem; font-weight: 900; margin-top: 0.25rem; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--surface);
+  }
+  .chip.win { border-color: #86efac; color: #166534; background: #ecfdf3; }
+  .stress-table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  .stress-table th, .stress-table td {
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    padding: 0.65rem;
+  }
+  .stress-table th {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+  .chart-wrap { display: grid; place-items: center; padding: 0.4rem; }
+  .chart-wrap canvas { width: min(560px, 100%); height: 360px; }
+  .subtle-note { color: var(--text-muted); font-size: 0.82rem; }
+</style>
+
+<div class="lab-shell">
+  <section class="panel lab-hero" data-reveal>
+    <h1>Decision Lab</h1>
+    <p>Weighted ranking plus affordability stress test. This is your “best-fit listing” engine.</p>
+  </section>
+
+  {% if error %}
+  <section class="panel" data-reveal>
+    <div class="error">{{ error }}</div>
+    <div style="margin-top: 0.7rem;">
+      <a href="/listings/compare" class="btn btn-outline">Back to Compare</a>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if analysis %}
+  <section class="panel" data-reveal>
+    <form method="get" action="/listings/decision-lab" class="controls-grid">
+      <input type="hidden" name="ids" value="{{ decision_ids }}" />
+      <div class="field">
+        <label for="pref-location">Preferred Game</label>
+        <input id="pref-location" name="pref_location" value="{{ analysis.preferred_location }}" placeholder="Athens, Chalandri" />
+      </div>
+      <div class="field">
+        <label for="weight-price">Weight: Price</label>
+        <input id="weight-price" type="number" min="0" max="100" name="weight_price" value="{{ analysis.weights.price }}" />
+      </div>
+      <div class="field">
+        <label for="weight-size">Weight: Stock</label>
+        <input id="weight-size" type="number" min="0" max="100" name="weight_size" value="{{ analysis.weights.size }}" />
+      </div>
+      <div class="field">
+        <label for="weight-bedrooms">Weight: Release Year</label>
+        <input id="weight-bedrooms" type="number" min="0" max="100" name="weight_bedrooms" value="{{ analysis.weights.bedrooms }}" />
+      </div>
+      <div class="field">
+        <label for="weight-bathrooms">Weight: Rarity Score</label>
+        <input id="weight-bathrooms" type="number" min="0" max="100" name="weight_bathrooms" value="{{ analysis.weights.bathrooms }}" />
+      </div>
+      <div class="field">
+        <label for="weight-location">Weight: Game</label>
+        <input id="weight-location" type="number" min="0" max="100" name="weight_location" value="{{ analysis.weights.location }}" />
+      </div>
+      <div class="field">
+        <label for="down-payment">Wallet Reserve %</label>
+        <input id="down-payment" type="number" min="0" max="95" name="down_payment_pct" value="{{ analysis.down_payment_pct }}" />
+      </div>
+      <div class="field">
+        <label for="interest-rate">Market Risk %</label>
+        <input id="interest-rate" type="number" min="1" max="20" name="interest_rate" value="{{ analysis.interest_rate }}" />
+      </div>
+      <div class="field">
+        <label for="loan-years">Collection Horizon</label>
+        <input id="loan-years" type="number" min="5" max="40" name="loan_years" value="{{ analysis.loan_years }}" />
+      </div>
+      <div class="field">
+        <label for="monthly-income">Monthly Income $</label>
+        <input id="monthly-income" type="number" min="0" name="monthly_income" value="{{ analysis.monthly_income }}" />
+      </div>
+      <div class="field" style="align-self: end;">
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Recompute</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" data-reveal>
+    <div class="winner-card">
+      <h2>Winner: {{ analysis.winner_title }}</h2>
+      <p>Weighted fit score: <strong>{{ analysis.winner_score }}</strong></p>
+    </div>
+    <div class="summary-grid" style="margin-top: 0.75rem;">
+      <article class="summary-card"><span>Average Simulated Cost</span><strong>${{ "{:,.0f}".format(analysis.avg_payment) }}</strong></article>
+      <article class="summary-card"><span>Market Risk</span><strong>{{ analysis.interest_rate }}%</strong></article>
+      <article class="summary-card"><span>Wallet Reserve</span><strong>{{ analysis.down_payment_pct }}%</strong></article>
+      <article class="summary-card"><span>Collection Horizon</span><strong>{{ analysis.loan_years }} years</strong></article>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <h2 style="margin-bottom: 0.65rem;">Fit Ranking</h2>
+    <div class="rows-grid" data-stagger>
+      {% for row in analysis.rows %}
+      <article class="row-card" data-reveal>
+        <h3>{{ row.listing.title }}</h3>
+        <div class="score">{{ row.weighted_score }}</div>
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.35rem 0 0.55rem;">
+          {% if row.listing.id == analysis.winner_id %}<span class="chip win">Top Match</span>{% endif %}
+          <span class="chip">${{ "{:,}".format(row.listing.price) }}</span>
+          <span class="chip">Stock {{ row.listing.size }}</span>
+        </div>
+        <ul style="margin:0;padding-left:1rem;" class="subtle-note">
+          {% for reason in row.reasons %}
+          <li>{{ reason }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <h2 style="margin-bottom: 0.65rem;">Purchase Stress Test</h2>
+    <div style="overflow-x:auto;">
+      <table class="stress-table">
+        <thead>
+          <tr>
+            <th>Listing</th>
+            <th>Base Cost</th>
+            <th>+2% Market Risk</th>
+            <th>+4% Market Risk</th>
+            <th>Wallet Burden</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in analysis.rows %}
+          <tr>
+            <td><strong>{{ row.listing.title }}</strong></td>
+            <td>${{ "{:,.0f}".format(row.payment_base) }}</td>
+            <td>${{ "{:,.0f}".format(row.payment_stress_1) }}</td>
+            <td>${{ "{:,.0f}".format(row.payment_stress_2) }}</td>
+            <td>{{ row.burden_ratio_pct }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <h2 style="margin-bottom: 0.5rem;">Scoring Radar</h2>
+    <p class="subtle-note">Each polygon shows price, stock, release year, rarity score, and game score components.</p>
+    <div class="chart-wrap">
+      <canvas id="decision-radar" width="560" height="360"></canvas>
+    </div>
+  </section>
+
+  <section class="panel" data-reveal>
+    <a href="/listings/compare?ids={{ decision_ids }}" class="btn btn-outline">Back to Compare</a>
+  </section>
+  {% endif %}
+</div>
+
+{% if analysis %}
+<script>
+  (function () {
+    const rows = {{ analysis.chart_rows | tojson }};
+    const canvas = document.getElementById("decision-radar");
+    if (!canvas || !rows || !rows.length) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2 + 10;
+    const radius = Math.min(w, h) * 0.33;
+    const labels = ["price", "size", "bedrooms", "bathrooms", "location"];
+    const niceLabels = ["Price", "Stock", "Release Year", "Rarity Score", "Game"];
+    const colors = ["#1d4ed8", "#059669", "#b45309"];
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = "12px Manrope, sans-serif";
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.fillStyle = "#475569";
+
+    for (let ring = 1; ring <= 4; ring++) {
+      const ringRadius = (radius * ring) / 4;
+      ctx.beginPath();
+      for (let i = 0; i < labels.length; i++) {
+        const angle = (-Math.PI / 2) + (i * (Math.PI * 2) / labels.length);
+        const x = cx + Math.cos(angle) * ringRadius;
+        const y = cy + Math.sin(angle) * ringRadius;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < labels.length; i++) {
+      const angle = (-Math.PI / 2) + (i * (Math.PI * 2) / labels.length);
+      const x = cx + Math.cos(angle) * radius;
+      const y = cy + Math.sin(angle) * radius;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      const lx = cx + Math.cos(angle) * (radius + 20);
+      const ly = cy + Math.sin(angle) * (radius + 20);
+      ctx.fillText(niceLabels[i], lx - 24, ly + 4);
+    }
+
+    rows.slice(0, 3).forEach((row, idx) => {
+      const color = colors[idx % colors.length];
+      ctx.beginPath();
+      labels.forEach((label, i) => {
+        const value = Number(row.components[label] || 0);
+        const angle = (-Math.PI / 2) + (i * (Math.PI * 2) / labels.length);
+        const x = cx + Math.cos(angle) * radius * (value / 100);
+        const y = cy + Math.sin(angle) * radius * (value / 100);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.globalAlpha = 0.12;
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

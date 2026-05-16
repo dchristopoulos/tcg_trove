@@ -27,7 +27,7 @@ def configure_logging() -> None:
     console_handler.setFormatter(formatter)
     console_handler.addFilter(context_filter)
 
-    log_dir = Path(__file__).resolve().parents[2] / "logs"
+    log_dir = Path(__file__).resolve().parents[2] / ".local" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         log_dir / "tcg_trove.log",

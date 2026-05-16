@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     app_name: str = "TCG Trove"
     app_env: str = "development"
     app_version: str = "1.0.0"
-    public_base_url: str = "http://127.0.0.1:8000"
+    public_base_url: str = "http://127.0.0.1:8010"
     email_verification_ttl_seconds: int = 86400
     password_reset_ttl_seconds: int = 3600
     email_verification_resend_cooldown_seconds: int = 45
